@@ -16,22 +16,27 @@ Um jogo educativo de quebra-cabeça desenvolvido especificamente para crianças 
 - Preview instantâneo das fotos carregadas
 
 ### 🎮 Sistema de Níveis Progressivos
-| Nível | Peças | Grid | Dificuldade |
-|-------|-------|------|-------------|
-| 1 | 8 | 2x4 | Fácil |
-| 2 | 12 | 3x4 | Médio |
-| 3 | 16 | 4x4 | Médio+ |
-| 4 | 20 | 4x5 | Difícil |
-| 5 | 25 | 5x5 | Difícil+ |
-| 6 | 30 | 5x6 | Expert |
+| Nível | Peças | Grid | Dificuldade | Foto |
+|-------|-------|------|-------------|------|
+| 1 | 4 | 2x2 | Muito Fácil | Foto 1 |
+| 2 | 6 | 2x3 | Fácil | Foto 2 |
+| 3 | 6 | 3x2 | Fácil+ | Foto 3 |
+| 4 | 9 | 3x3 | Médio | Foto 4 |
+| 5 | 12 | 3x4 | Difícil | Foto 5 |
+| 6 | 12 | 4x3 | Difícil+ | Foto 6 |
+
+**Importante**: Cada nível usa uma foto diferente! Carregue 6 fotos para desbloquear todos os níveis.
 
 ### 🎨 UX/UI Infantil
 - **Paleta de cores suave**: Azul celeste (#87CEEB) + Rosa pastel (#FFB6C1)
 - **Fontes arredondadas** e amigáveis para crianças
-- **Feedback sonoro** para cada interação (seleção, encaixe correto, conclusão)
+- **Drag & Drop nativo**: Arraste as peças com o dedo ou mouse
+- **Peças com formato real de quebra-cabeça**: Abas e encaixes visíveis (SVG)
+- **Feedback sonoro** para cada interação (seleção, soltar, encaixe correto, conclusão)
 - **Confetes animados** ao completar o quebra-cabeça
 - **Modo tela cheia** para imersão total
 - **Sistema de dicas** com overlay transparente da imagem
+- **1 foto por nível**: Cada uma das 6 fotos é usada em um nível diferente
 
 ### ♿ Acessibilidade
 - Interface totalmente responsiva (mobile-first)

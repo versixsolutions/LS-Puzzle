@@ -3,79 +3,76 @@ import confetti from 'canvas-confetti'
 import heic2any from 'heic2any'
 import './App.css'
 
+// Ajustado para crianças de 5 anos: 4 a 12 peças
+// Cada nível usa uma foto diferente (6 fotos = 6 níveis)
 const LEVELS = [
-  { level: 1, pieces: 8, gridSize: 2 },
-  { level: 2, pieces: 12, gridSize: 3 },
-  { level: 3, pieces: 16, gridSize: 4 },
-  { level: 4, pieces: 20, gridSize: 4 },
-  { level: 5, pieces: 25, gridSize: 5 },
-  { level: 6, pieces: 30, gridSize: 6 }
+  { level: 1, pieces: 4, rows: 2, cols: 2 },   // 2x2 = 4 peças (muito fácil)
+  { level: 2, pieces: 6, rows: 2, cols: 3 },   // 2x3 = 6 peças (fácil)
+  { level: 3, pieces: 6, rows: 3, cols: 2 },   // 3x2 = 6 peças (fácil variação)
+  { level: 4, pieces: 9, rows: 3, cols: 3 },   // 3x3 = 9 peças (médio)
+  { level: 5, pieces: 12, rows: 3, cols: 4 },  // 3x4 = 12 peças (difícil)
+  { level: 6, pieces: 12, rows: 4, cols: 3 }   // 4x3 = 12 peças (difícil variação)
 ]
 
 const MAX_IMAGES = 6
 
 function App() {
-  const [gameState, setGameState] = useState('upload') // upload, menu, playing, completed
+  const [gameState, setGameState] = useState('upload')
   const [uploadedImages, setUploadedImages] = useState([])
-  const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [currentLevel, setCurrentLevel] = useState(0)
   const [pieces, setPieces] = useState([])
-  const [selectedPiece, setSelectedPiece] = useState(null)
+  const [draggedPiece, setDraggedPiece] = useState(null)
   const [showHint, setShowHint] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [completedLevels, setCompletedLevels] = useState({})
+  const [completedLevels, setCompletedLevels] = useState(new Set())
   
-  const audioRef = useRef({
-    bgMusic: null,
-    select: null,
-    correct: null,
-    complete: null
-  })
-  
+  const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
   const canvasRef = useRef(null)
 
-  // Inicializar sons
   useEffect(() => {
     audioRef.current.select = createBeep(400, 0.1, 'sine')
-    audioRef.current.correct = createBeep(600, 0.2, 'triangle')
+    audioRef.current.drop = createBeep(500, 0.15, 'triangle')
+    audioRef.current.correct = createBeep(600, 0.2, 'square')
     audioRef.current.complete = createMelody()
   }, [])
 
   function createBeep(frequency, duration, type = 'sine') {
     return () => {
       if (!soundEnabled) return
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-      const oscillator = audioContext.createOscillator()
-      const gainNode = audioContext.createGain()
-      
-      oscillator.connect(gainNode)
-      gainNode.connect(audioContext.destination)
-      
-      oscillator.frequency.value = frequency
-      oscillator.type = type
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
-      
-      oscillator.start(audioContext.currentTime)
-      oscillator.stop(audioContext.currentTime + duration)
+      try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
+        const oscillator = audioContext.createOscillator()
+        const gainNode = audioContext.createGain()
+        
+        oscillator.connect(gainNode)
+        gainNode.connect(audioContext.destination)
+        
+        oscillator.frequency.value = frequency
+        oscillator.type = type
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
+        
+        oscillator.start(audioContext.currentTime)
+        oscillator.stop(audioContext.currentTime + duration)
+      } catch (e) {
+        // Audio context não disponível
+      }
     }
   }
 
   function createMelody() {
     return () => {
       if (!soundEnabled) return
-      const notes = [523.25, 587.33, 659.25, 783.99]
+      const notes = [523.25, 587.33, 659.25, 783.99, 880.00]
       notes.forEach((freq, i) => {
-        setTimeout(() => createBeep(freq, 0.3, 'sine')(), i * 150)
+        setTimeout(() => createBeep(freq, 0.25, 'sine')(), i * 120)
       })
     }
   }
 
   const playSound = (soundType) => {
-    if (audioRef.current[soundType]) {
-      audioRef.current[soundType]()
-    }
+    if (audioRef.current[soundType]) audioRef.current[soundType]()
   }
 
   const triggerConfetti = () => {
@@ -83,37 +80,19 @@ function App() {
     const animationEnd = Date.now() + duration
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 }
 
-    function randomInRange(min, max) {
-      return Math.random() * (max - min) + min
-    }
-
-    const interval = setInterval(function() {
+    const interval = setInterval(() => {
       const timeLeft = animationEnd - Date.now()
-
-      if (timeLeft <= 0) {
-        return clearInterval(interval)
-      }
+      if (timeLeft <= 0) return clearInterval(interval)
 
       const particleCount = 50 * (timeLeft / duration)
-      
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
-      })
-      confetti({
-        ...defaults,
-        particleCount,
-        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
-      })
+      confetti({ ...defaults, particleCount, origin: { x: Math.random() * 0.4 + 0.1, y: Math.random() - 0.2 } })
+      confetti({ ...defaults, particleCount, origin: { x: Math.random() * 0.4 + 0.6, y: Math.random() - 0.2 } })
     }, 250)
   }
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files)
-    const totalImages = uploadedImages.length + files.length
-
-    if (totalImages > MAX_IMAGES) {
+    if (uploadedImages.length + files.length > MAX_IMAGES) {
       alert(`Você pode carregar no máximo ${MAX_IMAGES} imagens!`)
       return
     }
@@ -122,185 +101,194 @@ function App() {
       files.map(async (file) => {
         try {
           let processedFile = file
-
-          // Converter HEIC para JPEG
           if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
-            const convertedBlob = await heic2any({
-              blob: file,
-              toType: 'image/jpeg',
-              quality: 0.9
-            })
-            processedFile = new File([convertedBlob], file.name.replace(/\.heic$/i, '.jpg'), {
-              type: 'image/jpeg'
-            })
+            const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
+            processedFile = new File([convertedBlob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' })
           }
 
           return new Promise((resolve) => {
             const reader = new FileReader()
             reader.onload = (event) => {
               const img = new Image()
-              img.onload = () => {
-                resolve({
-                  src: event.target.result,
-                  name: file.name,
-                  width: img.width,
-                  height: img.height
-                })
-              }
+              img.onload = () => resolve({ src: event.target.result, name: file.name })
               img.src = event.target.result
             }
             reader.readAsDataURL(processedFile)
           })
         } catch (error) {
-          console.error('Erro ao processar imagem:', error)
           return null
         }
       })
     )
 
-    const validImages = processedImages.filter(img => img !== null)
-    setUploadedImages(prev => [...prev, ...validImages])
+    setUploadedImages(prev => [...prev, ...processedImages.filter(img => img !== null)])
   }
 
   const removeImage = (index) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index))
   }
 
-  const startGame = (imageIndex) => {
-    setCurrentImageIndex(imageIndex)
-    setGameState('menu')
-  }
-
-  const selectLevel = (levelIndex) => {
+  const startLevel = (levelIndex) => {
+    if (levelIndex >= uploadedImages.length) {
+      alert('Carregue mais fotos para jogar este nível!')
+      return
+    }
     setCurrentLevel(levelIndex)
     initializePuzzle(levelIndex)
     setGameState('playing')
   }
 
+  const generatePuzzlePath = (row, col, rows, cols) => {
+    const tabSize = 0.2
+    const hasTopTab = row > 0
+    const hasBottomTab = row < rows - 1
+    const hasLeftTab = col > 0
+    const hasRightTab = col < cols - 1
+    
+    const topIsTab = hasTopTab && ((row + col) % 2 === 0)
+    const bottomIsTab = hasBottomTab && ((row + col) % 2 === 1)
+    const leftIsTab = hasLeftTab && ((row + col) % 2 === 1)
+    const rightIsTab = hasRightTab && ((row + col) % 2 === 0)
+    
+    let path = 'M 0,0 '
+    
+    if (hasTopTab) {
+      path += topIsTab 
+        ? `L ${0.5 - tabSize},0 Q ${0.5 - tabSize},-${tabSize} 0.5,-${tabSize} Q ${0.5 + tabSize},-${tabSize} ${0.5 + tabSize},0 `
+        : `L ${0.5 - tabSize},0 Q ${0.5 - tabSize},${tabSize} 0.5,${tabSize} Q ${0.5 + tabSize},${tabSize} ${0.5 + tabSize},0 `
+    }
+    path += 'L 1,0 '
+    
+    if (hasRightTab) {
+      path += rightIsTab
+        ? `L 1,${0.5 - tabSize} Q ${1 + tabSize},${0.5 - tabSize} ${1 + tabSize},0.5 Q ${1 + tabSize},${0.5 + tabSize} 1,${0.5 + tabSize} `
+        : `L 1,${0.5 - tabSize} Q ${1 - tabSize},${0.5 - tabSize} ${1 - tabSize},0.5 Q ${1 - tabSize},${0.5 + tabSize} 1,${0.5 + tabSize} `
+    }
+    path += 'L 1,1 '
+    
+    if (hasBottomTab) {
+      path += bottomIsTab
+        ? `L ${0.5 + tabSize},1 Q ${0.5 + tabSize},${1 + tabSize} 0.5,${1 + tabSize} Q ${0.5 - tabSize},${1 + tabSize} ${0.5 - tabSize},1 `
+        : `L ${0.5 + tabSize},1 Q ${0.5 + tabSize},${1 - tabSize} 0.5,${1 - tabSize} Q ${0.5 - tabSize},${1 - tabSize} ${0.5 - tabSize},1 `
+    }
+    path += 'L 0,1 '
+    
+    if (hasLeftTab) {
+      path += leftIsTab
+        ? `L 0,${0.5 + tabSize} Q ${-tabSize},${0.5 + tabSize} ${-tabSize},0.5 Q ${-tabSize},${0.5 - tabSize} 0,${0.5 - tabSize} `
+        : `L 0,${0.5 + tabSize} Q ${tabSize},${0.5 + tabSize} ${tabSize},0.5 Q ${tabSize},${0.5 - tabSize} 0,${0.5 - tabSize} `
+    }
+    path += 'Z'
+    
+    return path
+  }
+
   const initializePuzzle = useCallback((levelIndex) => {
     const level = LEVELS[levelIndex]
-    const image = uploadedImages[currentImageIndex]
-    
+    const image = uploadedImages[levelIndex]
     if (!image) return
 
     const canvas = canvasRef.current
     if (!canvas) return
 
+    canvas.width = 800
+    canvas.height = 600
     const ctx = canvas.getContext('2d')
     const img = new Image()
     
     img.onload = () => {
-      const pieceWidth = canvas.width / level.gridSize
-      const pieceHeight = canvas.height / level.gridSize
-      
+      const pieceWidth = canvas.width / level.cols
+      const pieceHeight = canvas.height / level.rows
       const newPieces = []
       
-      for (let row = 0; row < level.gridSize; row++) {
-        for (let col = 0; col < level.gridSize; col++) {
+      for (let row = 0; row < level.rows; row++) {
+        for (let col = 0; col < level.cols; col++) {
           const pieceCanvas = document.createElement('canvas')
-          pieceCanvas.width = pieceWidth
-          pieceCanvas.height = pieceHeight
+          const scale = 1.3
+          pieceCanvas.width = pieceWidth * scale
+          pieceCanvas.height = pieceHeight * scale
           const pieceCtx = pieceCanvas.getContext('2d')
           
-          pieceCtx.drawImage(
-            img,
-            (col * img.width) / level.gridSize,
-            (row * img.height) / level.gridSize,
-            img.width / level.gridSize,
-            img.height / level.gridSize,
-            0,
-            0,
-            pieceWidth,
-            pieceHeight
-          )
+          pieceCtx.save()
+          pieceCtx.translate(pieceWidth * 0.15, pieceHeight * 0.15)
+          pieceCtx.drawImage(img, (col * img.width) / level.cols, (row * img.height) / level.rows,
+            img.width / level.cols, img.height / level.rows, 0, 0, pieceWidth, pieceHeight)
+          pieceCtx.restore()
           
           newPieces.push({
-            id: row * level.gridSize + col,
-            correctPosition: { row, col },
-            currentPosition: { row, col },
+            id: row * level.cols + col,
+            correctRow: row,
+            correctCol: col,
+            currentRow: null,
+            currentCol: null,
             image: pieceCanvas.toDataURL(),
-            isPlaced: false
+            isPlaced: false,
+            puzzlePath: generatePuzzlePath(row, col, level.rows, level.cols)
           })
         }
       }
       
-      // Embaralhar peças
-      const shuffled = [...newPieces].sort(() => Math.random() - 0.5)
-      shuffled.forEach((piece, index) => {
-        piece.currentPosition = {
-          row: Math.floor(index / level.gridSize),
-          col: index % level.gridSize
-        }
-      })
-      
-      setPieces(shuffled)
+      setPieces([...newPieces].sort(() => Math.random() - 0.5))
     }
     
     img.src = image.src
-  }, [uploadedImages, currentImageIndex])
+  }, [uploadedImages])
 
-  const handlePieceClick = (piece) => {
+  const handleDragStart = (e, piece) => {
+    if (piece.isPlaced) return
+    setDraggedPiece(piece)
     playSound('select')
-    
-    if (!selectedPiece) {
-      setSelectedPiece(piece)
-    } else if (selectedPiece.id === piece.id) {
-      setSelectedPiece(null)
-    } else {
-      // Trocar posições
-      const newPieces = pieces.map(p => {
-        if (p.id === selectedPiece.id) {
-          return { ...p, currentPosition: piece.currentPosition }
-        }
-        if (p.id === piece.id) {
-          return { ...p, currentPosition: selectedPiece.currentPosition }
-        }
-        return p
-      })
-      
-      setPieces(newPieces)
-      setSelectedPiece(null)
-      
-      // Verificar se está correto
-      const piece1Correct = selectedPiece.correctPosition.row === piece.currentPosition.row &&
-                           selectedPiece.correctPosition.col === piece.currentPosition.col
-      const piece2Correct = piece.correctPosition.row === selectedPiece.currentPosition.row &&
-                           piece.correctPosition.col === selectedPiece.currentPosition.col
-      
-      if (piece1Correct && piece2Correct) {
-        playSound('correct')
-        
-        newPieces.forEach(p => {
-          if (p.id === selectedPiece.id || p.id === piece.id) {
-            p.isPlaced = true
-          }
-        })
-      }
-      
-      // Verificar se o puzzle está completo
-      checkCompletion(newPieces)
-    }
+    e.dataTransfer.effectAllowed = 'move'
+    setTimeout(() => { e.target.style.opacity = '0.4' }, 0)
   }
 
-  const checkCompletion = (currentPieces) => {
-    const isComplete = currentPieces.every(piece => 
-      piece.correctPosition.row === piece.currentPosition.row &&
-      piece.correctPosition.col === piece.currentPosition.col
-    )
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1'
+    setDraggedPiece(null)
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDropOnSlot = (e, targetRow, targetCol) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!draggedPiece) return
     
-    if (isComplete) {
+    playSound('drop')
+    const isCorrect = draggedPiece.correctRow === targetRow && draggedPiece.correctCol === targetCol
+    
+    setPieces(prev => prev.map(p => {
+      if (p.id === draggedPiece.id) {
+        return { ...p, currentRow: targetRow, currentCol: targetCol, isPlaced: isCorrect }
+      }
+      if (p.currentRow === targetRow && p.currentCol === targetCol) {
+        return { ...p, currentRow: null, currentCol: null, isPlaced: false }
+      }
+      return p
+    }))
+    
+    if (isCorrect) {
+      playSound('correct')
       setTimeout(() => {
-        playSound('complete')
-        triggerConfetti()
-        setGameState('completed')
-        
-        // Marcar nível como completo
-        setCompletedLevels(prev => ({
-          ...prev,
-          [`${currentImageIndex}-${currentLevel}`]: true
-        }))
-      }, 300)
+        setPieces(current => {
+          const allCorrect = current.every(p => 
+            p.currentRow === p.correctRow && p.currentCol === p.correctCol
+          )
+          if (allCorrect) {
+            playSound('complete')
+            triggerConfetti()
+            setCompletedLevels(prev => new Set([...prev, currentLevel]))
+            setTimeout(() => setGameState('completed'), 500)
+          }
+          return current
+        })
+      }, 100)
     }
+    
+    setDraggedPiece(null)
   }
 
   const toggleFullscreen = async () => {
@@ -312,120 +300,92 @@ function App() {
         await document.exitFullscreen()
         setIsFullscreen(false)
       }
-    } catch (error) {
-      console.error('Erro ao alternar tela cheia:', error)
+    } catch (e) {
+      console.error('Fullscreen error')
     }
   }
 
   const resetPuzzle = () => {
     initializePuzzle(currentLevel)
-    setSelectedPiece(null)
     setShowHint(false)
   }
 
   const nextLevel = () => {
-    if (currentLevel < LEVELS.length - 1) {
-      selectLevel(currentLevel + 1)
+    if (currentLevel < LEVELS.length - 1 && currentLevel < uploadedImages.length - 1) {
+      startLevel(currentLevel + 1)
     } else {
-      setGameState('menu')
+      setGameState('upload')
     }
   }
 
-  // Renderização do estado de upload
   if (gameState === 'upload') {
     return (
       <div className="upload-screen">
         <h1 className="title">🧩 Quebra-Cabeça Mágico ✨</h1>
-        <p className="subtitle">Carregue até {MAX_IMAGES} fotos especiais!</p>
+        <p className="subtitle">Carregue {MAX_IMAGES} fotos (uma para cada nível)!</p>
         
         <div className="upload-area">
-          <input
-            type="file"
-            id="imageUpload"
-            accept="image/*,.heic"
-            multiple
-            onChange={handleImageUpload}
-            style={{ display: 'none' }}
-          />
+          <input type="file" id="imageUpload" accept="image/*,.heic" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
           <label htmlFor="imageUpload" className="upload-button">
-            📸 Escolher Fotos
+            📸 Escolher Fotos ({uploadedImages.length}/{MAX_IMAGES})
           </label>
           
           <div className="image-grid">
             {uploadedImages.map((img, index) => (
               <div key={index} className="image-preview">
                 <img src={img.src} alt={img.name} />
+                <div className="level-badge">Nível {index + 1}</div>
                 <button onClick={() => removeImage(index)} className="remove-btn">❌</button>
-                <button onClick={() => startGame(index)} className="play-btn">▶️ Jogar</button>
+                <button onClick={() => startLevel(index)} className="play-btn" disabled={completedLevels.has(index)}>
+                  {completedLevels.has(index) ? '✅ Completo' : `▶️ Nível ${index + 1}`}
+                </button>
               </div>
             ))}
           </div>
           
-          {uploadedImages.length === 0 && (
-            <p className="hint-text">Nenhuma foto carregada ainda. Clique no botão acima! 👆</p>
+          {uploadedImages.length === 0 && <p className="hint-text">Clique no botão acima para carregar fotos! 👆</p>}
+          {uploadedImages.length > 0 && uploadedImages.length < MAX_IMAGES && (
+            <p className="hint-text">📸 Carregue mais {MAX_IMAGES - uploadedImages.length} foto(s)!</p>
+          )}
+          {uploadedImages.length === MAX_IMAGES && (
+            <p className="success-text">🎉 Todas as fotos carregadas! Escolha um nível! 🎉</p>
           )}
         </div>
       </div>
     )
   }
 
-  // Renderização do menu de níveis
-  if (gameState === 'menu') {
-    return (
-      <div className="level-menu">
-        <h1 className="title">Escolha o Nível! 🎯</h1>
-        <div className="level-grid">
-          {LEVELS.map((level, index) => (
-            <button
-              key={index}
-              onClick={() => selectLevel(index)}
-              className={`level-button ${completedLevels[`${currentImageIndex}-${index}`] ? 'completed' : ''}`}
-            >
-              <span className="level-number">Nível {level.level}</span>
-              <span className="level-pieces">{level.pieces} peças</span>
-              {completedLevels[`${currentImageIndex}-${index}`] && <span className="check">✅</span>}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => setGameState('upload')} className="back-button">
-          ⬅️ Voltar
-        </button>
-      </div>
-    )
-  }
-
-  // Renderização do estado de completado
   if (gameState === 'completed') {
+    const allCompleted = completedLevels.size === Math.min(uploadedImages.length, LEVELS.length)
+    
     return (
       <div className="completion-screen">
         <h1 className="celebration-title">🎉 Parabéns! 🎉</h1>
-        <p className="celebration-text">Você completou o quebra-cabeça!</p>
+        <p className="celebration-text">Você completou o Nível {currentLevel + 1}!</p>
         <div className="completed-image">
-          <img src={uploadedImages[currentImageIndex].src} alt="Imagem completa" />
+          <img src={uploadedImages[currentLevel].src} alt="Completo" />
         </div>
         <div className="completion-buttons">
-          <button onClick={resetPuzzle} className="action-button">
-            🔄 Jogar Novamente
-          </button>
-          <button onClick={nextLevel} className="action-button primary">
-            {currentLevel < LEVELS.length - 1 ? '➡️ Próximo Nível' : '🏠 Menu'}
-          </button>
+          <button onClick={resetPuzzle} className="action-button">🔄 Jogar Novamente</button>
+          {!allCompleted && currentLevel < uploadedImages.length - 1 && (
+            <button onClick={nextLevel} className="action-button primary">➡️ Próximo Nível</button>
+          )}
+          <button onClick={() => setGameState('upload')} className="action-button">🏠 Menu</button>
         </div>
+        {allCompleted && <p className="victory-text">🏆 Todos os níveis completos! Campeão! 🏆</p>}
       </div>
     )
   }
 
-  // Renderização do jogo
   const level = LEVELS[currentLevel]
+  const availablePieces = pieces.filter(p => p.currentRow === null)
   
   return (
     <div className="game-screen">
-      <canvas ref={canvasRef} width={800} height={600} style={{ display: 'none' }} />
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       <div className="game-header">
-        <button onClick={() => setGameState('menu')} className="header-button">
-          ⬅️ Menu
-        </button>
+        <button onClick={() => setGameState('upload')} className="header-button">⬅️ Menu</button>
         <h2 className="level-title">Nível {level.level} - {level.pieces} peças</h2>
         <div className="header-controls">
           <button onClick={() => setSoundEnabled(!soundEnabled)} className="header-button">
@@ -437,46 +397,74 @@ function App() {
         </div>
       </div>
 
-      <div className="puzzle-container">
-        {showHint && (
-          <div className="hint-overlay">
-            <img src={uploadedImages[currentImageIndex].src} alt="Dica" />
-          </div>
-        )}
-        
-        <div 
-          className="puzzle-grid"
-          style={{
-            gridTemplateColumns: `repeat(${level.gridSize}, 1fr)`,
-            gridTemplateRows: `repeat(${level.gridSize}, 1fr)`
-          }}
-        >
-          {pieces.map((piece) => (
-            <div
-              key={piece.id}
-              onClick={() => handlePieceClick(piece)}
-              className={`puzzle-piece ${selectedPiece?.id === piece.id ? 'selected' : ''} ${piece.isPlaced ? 'placed' : ''}`}
-              style={{
-                gridRow: piece.currentPosition.row + 1,
-                gridColumn: piece.currentPosition.col + 1
-              }}
-            >
-              <img src={piece.image} alt={`Peça ${piece.id}`} draggable={false} />
+      <div className="game-container">
+        <div className="puzzle-section">
+          {showHint && (
+            <div className="hint-overlay">
+              <img src={uploadedImages[currentLevel].src} alt="Dica" />
             </div>
-          ))}
+          )}
+          
+          <div className="puzzle-grid" style={{ gridTemplateColumns: `repeat(${level.cols}, 1fr)`, gridTemplateRows: `repeat(${level.rows}, 1fr)` }}>
+            {Array.from({ length: level.rows }).map((_, row) =>
+              Array.from({ length: level.cols }).map((_, col) => {
+                const piece = pieces.find(p => p.currentRow === row && p.currentCol === col)
+                return (
+                  <div key={`${row}-${col}`} className={`puzzle-slot ${piece?.isPlaced ? 'correct' : ''}`}
+                    onDragOver={handleDragOver} onDrop={(e) => handleDropOnSlot(e, row, col)}>
+                    {piece && (
+                      <div className={`puzzle-piece placed ${piece.isPlaced ? 'locked' : ''}`}
+                        draggable={!piece.isPlaced} onDragStart={(e) => handleDragStart(e, piece)} onDragEnd={handleDragEnd}>
+                        <svg viewBox="0 0 1.3 1.3" className="piece-svg">
+                          <defs>
+                            <pattern id={`img-${piece.id}`} patternUnits="objectBoundingBox" width="1" height="1">
+                              <image href={piece.image} width="1.3" height="1.3" preserveAspectRatio="none" />
+                            </pattern>
+                            <clipPath id={`clip-${piece.id}`}>
+                              <path d={piece.puzzlePath} transform="scale(1.3)" />
+                            </clipPath>
+                          </defs>
+                          <rect width="1.3" height="1.3" fill={`url(#img-${piece.id})`} clipPath={`url(#clip-${piece.id})`} />
+                          <path d={piece.puzzlePath} transform="scale(1.3)" fill="none" stroke="#333" strokeWidth="0.01" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+
+        <div className="pieces-section">
+          <h3 className="pieces-title">Arraste as peças 👇</h3>
+          <div className="pieces-container">
+            {availablePieces.map((piece) => (
+              <div key={piece.id} className="puzzle-piece available"
+                draggable onDragStart={(e) => handleDragStart(e, piece)} onDragEnd={handleDragEnd}>
+                <svg viewBox="0 0 1.3 1.3" className="piece-svg">
+                  <defs>
+                    <pattern id={`img-av-${piece.id}`} patternUnits="objectBoundingBox" width="1" height="1">
+                      <image href={piece.image} width="1.3" height="1.3" preserveAspectRatio="none" />
+                    </pattern>
+                    <clipPath id={`clip-av-${piece.id}`}>
+                      <path d={piece.puzzlePath} transform="scale(1.3)" />
+                    </clipPath>
+                  </defs>
+                  <rect width="1.3" height="1.3" fill={`url(#img-av-${piece.id})`} clipPath={`url(#clip-av-${piece.id})`} />
+                  <path d={piece.puzzlePath} transform="scale(1.3)" fill="none" stroke="#333" strokeWidth="0.015" />
+                </svg>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="game-footer">
-        <button 
-          onClick={() => setShowHint(!showHint)}
-          className="hint-button"
-        >
-          {showHint ? '🙈 Esconder Dica' : '💡 Ver Dica'}
+        <button onClick={() => setShowHint(!showHint)} className="hint-button">
+          {showHint ? '🙈 Esconder' : '💡 Dica'}
         </button>
-        <button onClick={resetPuzzle} className="reset-button">
-          🔄 Reiniciar
-        </button>
+        <button onClick={resetPuzzle} className="reset-button">🔄 Reiniciar</button>
       </div>
     </div>
   )
