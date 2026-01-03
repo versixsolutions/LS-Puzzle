@@ -32,12 +32,23 @@ body {
   overflow-x: hidden;
   user-select: none;
   min-height: 100vh;
+  /* Prevenir scroll e zoom em PWA */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 #root {
   width: 100vw;
   height: 100vh;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  /* Melhorar performance em mobile/PWA */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* Botão de atualização discreto */
@@ -583,6 +594,18 @@ body {
   transition: all var(--transition-fast);
   box-shadow: 0 2px 8px var(--color-shadow);
   border: 3px solid transparent;
+  /* Prevenir scroll e zoom em PWA/mobile */
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Melhorar performance */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform, opacity;
 }
 
 .puzzle-piece:not(.correct) {
@@ -1591,5 +1614,37 @@ body {
   
   .album-actions {
     flex-direction: column;
+  }
+}
+
+/* Melhorar experiência em PWA */
+@media all and (display-mode: standalone) {
+  body {
+    /* Em PWA, garantir que não haja scroll */
+    overscroll-behavior: none;
+    -webkit-overscroll-behavior: none;
+  }
+  
+  .puzzle-piece {
+    /* Garantir que as peças não acionem scroll */
+    touch-action: none !important;
+  }
+  
+  /* Prevenir zoom duplo em iOS */
+  * {
+    touch-action: manipulation;
+  }
+}
+
+/* Prevenir seleção e comportamento indesejado em mobile */
+@media (max-width: 768px) {
+  body {
+    /* Melhorar performance em mobile */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .puzzle-piece {
+    /* Garantir que toque seja tratado como interação, não scroll */
+    touch-action: none;
   }
 }

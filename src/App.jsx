@@ -68,6 +68,38 @@ function App() {
     setSavedAlbums(updatedAlbums)
     localStorage.setItem('savedAlbums', JSON.stringify(updatedAlbums))
   }
+
+  // Prevenir scroll da página durante drag operations em PWA
+  useEffect(() => {
+    const preventScroll = (e) => {
+      if (gameState === 'playing' && (draggedPiece || selectedPiece)) {
+        e.preventDefault()
+        return false
+      }
+    }
+
+    const preventTouchMove = (e) => {
+      if (gameState === 'playing' && (draggedPiece || selectedPiece)) {
+        e.preventDefault()
+      }
+    }
+
+    // Adicionar event listeners globais
+    document.addEventListener('touchmove', preventTouchMove, { passive: false })
+    document.addEventListener('scroll', preventScroll, { passive: false })
+    document.addEventListener('wheel', preventScroll, { passive: false })
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('touchmove', preventTouchMove)
+      document.removeEventListener('scroll', preventScroll)
+      document.removeEventListener('wheel', preventScroll)
+      
+      // Garantir que o scroll seja restaurado
+      document.body.style.overflow = ''
+      document.documentElement.style.overflow = ''
+    }
+  }, [gameState, draggedPiece, selectedPiece])
   
   const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
   const canvasRef = useRef(null)
@@ -348,19 +380,40 @@ function App() {
   // Novo: Suporte a touch events para melhor aderência
   const handleTouchStart = (e, piece) => {
     if (piece.isPlaced || interactionMode === 'click') return
+
+    // Prevenir todos os comportamentos padrão do navegador
     e.preventDefault()
+    e.stopPropagation()
+
+    // Prevenir scroll da página durante drag
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
     setDraggedPiece(piece)
     playSound('select')
+
+    // Feedback visual imediato
     e.target.style.opacity = '0.6'
     e.target.style.transform = 'scale(1.1) rotate(5deg)'
+    e.target.style.zIndex = '1000'
   }
 
   const handleTouchEnd = (e, piece) => {
     if (interactionMode === 'click') return
+
+    // Prevenir comportamentos padrão
     e.preventDefault()
+    e.stopPropagation()
+
+    // Restaurar scroll da página
+    document.body.style.overflow = ''
+    document.documentElement.style.overflow = ''
+
+    // Resetar estilos visuais
     e.target.style.opacity = '1'
     e.target.style.transform = 'scale(1) rotate(0deg)'
-    
+    e.target.style.zIndex = ''
+
     // Detectar se foi solto sobre outra peça
     const touch = e.changedTouches[0]
     const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY)
@@ -371,7 +424,7 @@ function App() {
         handlePieceSwap(piece, targetPiece)
       }
     }
-    
+
     setDraggedPiece(null)
   }
 
