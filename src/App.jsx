@@ -169,12 +169,17 @@ function App() {
     setUploadedImages(prev => prev.filter((_, i) => i !== index))
   }
 
-  const startGame = () => {
+  const startGame = (selectedMode = null) => {
     const shuffled = [...uploadedImages].sort(() => Math.random() - 0.5)
     setShuffledImages(shuffled)
     setCurrentLevel(0)
     setCompletedLevels(new Set())
     setPuzzleInitialized(false)
+    
+    // Se um modo foi selecionado, define-o
+    if (selectedMode) {
+      setInteractionMode(selectedMode)
+    }
     
     setTimeout(() => {
       initializePuzzle(0, shuffled)
@@ -519,7 +524,7 @@ function App() {
             
             {uploadedImages.length === MAX_IMAGES && (
               <div className="overlay-buttons">
-                <button onClick={startGame} className="start-game-button-overlay">
+                <button onClick={() => setGameState('mode-selection')} className="start-game-button-overlay">
                   <span className="play-icon">🎮</span>
                   INICIAR JOGO
                 </button>
@@ -544,6 +549,89 @@ function App() {
               Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!
             </p>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  if (gameState === 'mode-selection') {
+    return (
+      <div className="upload-screen has-photos">
+        {/* Botão de atualização discreto */}
+        <button 
+          onClick={handleUpdate} 
+          className="update-app-button"
+          title="Atualizar aplicativo"
+        >
+          🔄
+        </button>
+        
+        {updateAvailable && (
+          <div className="update-banner">
+            <span>✨ Nova versão disponível!</span>
+            <button onClick={handleUpdate} className="update-button">
+              🔄 Atualizar Agora
+            </button>
+          </div>
+        )}
+        
+        {/* Saudação personalizada */}
+        {userName && (
+          <div className="welcome-message">
+            <h2>Olá, {userName}! 👋</h2>
+            <p>Escolha como quer jogar!</p>
+          </div>
+        )}
+        
+        {/* Título da seleção de modo */}
+        <div className="hero-section">
+          <div className="logo-container">
+            <div className="logo-icon">🎯</div>
+            <h1 className="main-title">Modo de<br/>Jogo</h1>
+            <div className="sparkle-effects">
+              <span className="sparkle">🎮</span>
+              <span className="sparkle">🎯</span>
+              <span className="sparkle">🎮</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Opções de modo de jogo */}
+        <div className="upload-container">
+          <div className="upload-area">
+            <div className="mode-selection-grid">
+              <div className="mode-option">
+                <button onClick={() => startGame('drag')} className="mode-button drag-mode">
+                  <div className="mode-icon">👆</div>
+                  <h3>Modo Arrastar</h3>
+                  <p>Arraste as peças para seus lugares</p>
+                  <div className="mode-features">
+                    <span>🖱️ Arrastar e soltar</span>
+                    <span>🎯 Mais intuitivo</span>
+                    <span>⚡ Rápido</span>
+                  </div>
+                </button>
+              </div>
+              
+              <div className="mode-option">
+                <button onClick={() => startGame('click')} className="mode-button click-mode">
+                  <div className="mode-icon">🖱️</div>
+                  <h3>Modo Clicar</h3>
+                  <p>Clique na peça e depois no destino</p>
+                  <div className="mode-features">
+                    <span>👆 Dois cliques</span>
+                    <span>🎯 Mais preciso</span>
+                    <span>🧠 Estratégico</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+            
+            <button onClick={() => setGameState('upload')} className="back-button">
+              <span className="back-icon">⬅️</span>
+              Voltar
+            </button>
+          </div>
         </div>
       </div>
     )
