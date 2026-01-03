@@ -29,6 +29,12 @@ function App() {
   const [puzzleInitialized, setPuzzleInitialized] = useState(false)
   const [interactionMode, setInteractionMode] = useState('drag') // 'drag' or 'click'
   const [selectedPiece, setSelectedPiece] = useState(null)
+  const [userName, setUserName] = useState(localStorage.getItem('userName') || '')
+  
+  const saveUserName = (name) => {
+    setUserName(name)
+    localStorage.setItem('userName', name)
+  }
   
   const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
   const canvasRef = useRef(null)
@@ -407,6 +413,15 @@ function App() {
   if (gameState === 'upload') {
     return (
       <div className="upload-screen">
+        {/* Botão de atualização discreto */}
+        <button 
+          onClick={handleUpdate} 
+          className="update-app-button"
+          title="Atualizar aplicativo"
+        >
+          🔄
+        </button>
+        
         {updateAvailable && (
           <div className="update-banner">
             <span>✨ Nova versão disponível!</span>
@@ -416,14 +431,74 @@ function App() {
           </div>
         )}
         
-        <h1 className="title">🧩 Quebra-Cabeça Mágico ✨</h1>
-        <p className="subtitle">Carregue {MAX_IMAGES} fotos para começar!</p>
+        {/* Saudação personalizada */}
+        {userName && (
+          <div className="welcome-message">
+            <h2>Olá, {userName}! 👋</h2>
+            <p>Pronto para uma aventura mágica?</p>
+          </div>
+        )}
+        
+        {/* Título maior e mais chamativo */}
+        <div className="hero-section">
+          <div className="logo-container">
+            <div className="logo-icon">🧩</div>
+            <h1 className="main-title">Quebra-Cabeça<br/>Mágico</h1>
+            <div className="sparkle-effects">
+              <span className="sparkle">✨</span>
+              <span className="sparkle">⭐</span>
+              <span className="sparkle">✨</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Campo para nome do usuário */}
+        {!userName && (
+          <div className="name-input-section">
+            <div className="name-input-container">
+              <label htmlFor="userName" className="name-label">
+                <span className="name-icon">👤</span>
+                Qual é o seu nome?
+              </label>
+              <input
+                id="userName"
+                type="text"
+                placeholder="Digite seu nome..."
+                className="name-input"
+                maxLength={20}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    saveUserName(e.target.value.trim())
+                  }
+                }}
+              />
+              <button 
+                onClick={() => {
+                  const input = document.getElementById('userName')
+                  if (input.value.trim()) {
+                    saveUserName(input.value.trim())
+                  }
+                }}
+                className="name-confirm-button"
+              >
+                ✅ Confirmar
+              </button>
+            </div>
+          </div>
+        )}
+        
+        <p className="subtitle">
+          <span className="camera-icon">📸</span>
+          Carregue {MAX_IMAGES} fotos para começar a magia!
+        </p>
         
         <div className="upload-container">
           <div className="upload-area">
             <input type="file" id="imageUpload" accept="image/*,.heic" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
             <label htmlFor="imageUpload" className="upload-button">
-              📸 Escolher Fotos ({uploadedImages.length}/{MAX_IMAGES})
+              <span className="upload-icon">📷</span>
+              Escolher Fotos
+              <span className="upload-counter">({uploadedImages.length}/{MAX_IMAGES})</span>
             </label>
             
             {uploadedImages.length > 0 && (
@@ -440,21 +515,29 @@ function App() {
             {uploadedImages.length === MAX_IMAGES && (
               <div className="overlay-buttons">
                 <button onClick={startGame} className="start-game-button-overlay">
-                  🎮 INICIAR JOGO
+                  <span className="play-icon">🎮</span>
+                  INICIAR JOGO
                 </button>
                 <button onClick={reviewPhotos} className="review-photos-button">
-                  🔄 Revisar Fotos
+                  <span className="review-icon">🔄</span>
+                  Revisar Fotos
                 </button>
               </div>
             )}
           </div>
           
           {uploadedImages.length === 0 && (
-            <p className="hint-text">👆 Clique no botão acima para escolher suas fotos favoritas!</p>
+            <p className="hint-text">
+              <span className="hint-icon">💡</span>
+              Clique no botão acima para escolher suas fotos favoritas!
+            </p>
           )}
           
           {uploadedImages.length > 0 && uploadedImages.length < MAX_IMAGES && (
-            <p className="hint-text">📸 Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!</p>
+            <p className="hint-text">
+              <span className="hint-icon">📸</span>
+              Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!
+            </p>
           )}
         </div>
       </div>
