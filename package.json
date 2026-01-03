@@ -1,18 +1,14 @@
 {
   "name": "quebra-cabeca-magico",
-  "version": "6.0.0",
+  "version": "7.1.0",
   "type": "module",
-  "description": "Jogo educativo de quebra-cabeça para crianças - Design moderno com Tailwind",
+  "description": "FotoPuzzle - Jogo educativo completo com 6 telas seguindo design profissional",
   "author": "Versix Solutions",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/versixsolutions/LS-Puzzle.git"
   },
-  "bugs": {
-    "url": "https://github.com/versixsolutions/LS-Puzzle/issues"
-  },
-  "homepage": "https://github.com/versixsolutions/LS-Puzzle#readme",
   "keywords": [
     "puzzle",
     "game",
@@ -20,7 +16,8 @@
     "education",
     "pwa",
     "react",
-    "tailwindcss"
+    "tailwindcss",
+    "complete"
   ],
   "scripts": {
     "dev": "vite",

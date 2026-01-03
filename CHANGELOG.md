@@ -1,253 +1,327 @@
 # 📝 Changelog
 
-## [6.0.0] - 2026-01-03 - Redesign Completo com Tailwind CSS
+## [7.1.0] - 2026-01-03 - Correções Críticas de Especificação
 
-### 🎨 Redesign Total Baseado em Código de Referência
+### 🎯 Todas as Correções Implementadas
 
-Esta versão representa uma **refatoração completa** do projeto, seguindo o design system moderno e polido apresentado no código HTML de referência.
+Esta versão corrige **TODOS** os gaps identificados entre a v7.0 e as especificações das telas.
 
-#### ✨ Novo Design System
+---
 
-**Tailwind CSS**:
-- Migração completa de CSS customizado para Tailwind
-- Sistema de cores consistente e moderno
-- Utility-first approach para manutenibilidade
+## ✅ CORREÇÕES IMPLEMENTADAS
 
-**Paleta de Cores "Toy"**:
-```css
---toy-blue: #2b8cee    (Azul vibrante)
---toy-pink: #ffb7c5    (Rosa suave)
---toy-yellow: #ffcf48  (Amarelo alegre)
-```
+### 1. 🔴 **NÍVEIS COM 8-30 PEÇAS** (Crítico)
 
-**Tipografia**:
-- Fonte principal: **Spline Sans** (display, títulos)
-- Fonte secundária: **Noto Sans** (corpo, textos)
-- Font weights: 300-900 para hierarquia visual
+**Problema**: v7.0 tinha 4-12 peças  
+**Especificação**: Níveis devem ter 8-30 peças  
 
-#### 🎮 Nova Arquitetura de Jogo
-
-**Bandeja Horizontal de Peças** (inspirado no design de referência):
-```
-┌─────────────────────────────┐
-│     Grid do Puzzle 3x3      │  ← Área principal
-│  (slots vazios com borda)   │
-└─────────────────────────────┘
-┌─────────────────────────────┐
-│ [💎] [💎] [💎] [💎] [💎]    │  ← Bandeja scrollável
-│  Peças Disponíveis: 9       │
-└─────────────────────────────┘
-```
-
-**Antes (v5.0)**:
-- Peças embaralhadas no próprio grid
-- Drag & drop para trocar posições
-- Confuso para crianças pequenas
-
-**Agora (v6.0)**:
-- Grid vazio com slots pontilhados
-- Bandeja horizontal na parte inferior
-- Arrasta peça DA BANDEJA PARA O SLOT correto
-- Mecânica mais clara e intuitiva
-
-#### 🎯 Mudanças de UX
-
-**1. Tela de Upload**:
-```jsx
-┌─────────────────────────┐
-│  🧩 Quebra-Cabeça      │
-│      Mágico             │
-│                         │
-│ ┌────────────────────┐  │
-│ │ 📸 Escolher Fotos │  │  ← Botão toy-shadow
-│ │    (6/6)           │  │
-│ │                    │  │
-│ │  [📷] [📷] [📷]   │  │  ← Grid 3x3
-│ │  [📷] [📷] [📷]   │  │
-│ └────────────────────┘  │
-│                         │
-│ 🎮 INICIAR JOGO        │  ← Botão verde gradient
-└─────────────────────────┘
-```
-
-**2. Tela de Jogo**:
-```jsx
-Header:
-┌─────────────────────────┐
-│ 🏠  │  Nível 1  │ 🔄 🔊│
-└─────────────────────────┘
-
-Main:
-┌─────────────────────────┐
-│  ┌─┐ ┌─┐ ┌─┐          │  ← Grid 3x3
-│  └─┘ └─┘ └─┘          │    Slots vazios
-│  ┌─┐ ┌─┐ ┌─┐          │
-│  └─┘ └─┘ └─┘          │
-│  ┌─┐ ┌─┐ ┌─┐          │
-│  └─┘ └─┘ └─┘          │
-└─────────────────────────┘
-
-Footer (Bandeja):
-┌─────────────────────────┐
-│ Peças disponíveis: 9    │
-│ [💎] [💎] [💎] [💎] → │  ← Scroll horizontal
-└─────────────────────────┘
-```
-
-**3. Tela de Sucesso**:
-```jsx
-┌─────────────────────────┐
-│   🎉 Parabéns! 🎉      │
-│   Você conseguiu!       │
-│                         │
-│  ┌──────────────┐       │
-│  │  [Imagem]    │       │  ← Foto completa
-│  │     ✓        │       │    com rotação
-│  └──────────────┘       │
-│                         │
-│    ⭐  ⭐  ⭐          │  ← Estrelas
-│                         │
-│  ▶️ Próxima Fase       │  ← Botão principal
-│                         │
-│   🏠      🔄           │  ← Botões circulares
-│  Menu    Repetir       │
-└─────────────────────────┘
-```
-
-#### 🎨 Componentes Visuais
-
-**Sombra "Toy" (efeito 3D)**:
-```css
-.toy-shadow {
-  box-shadow: 0 6px 0 0 rgba(0,0,0,0.15);
-}
-
-.toy-shadow:active {
-  box-shadow: 0 2px 0 0 rgba(0,0,0,0.15);
-  transform: translateY(4px);  /* Afunda ao clicar */
-}
-```
-
-**Gradientes Modernos**:
-- Background: `from-blue-50 via-pink-50 to-yellow-50`
-- Botão verde: `from-green-400 to-green-500`
-- Botão azul: `bg-[#2b8cee]`
-
-**Bordas Arredondadas**:
-- Padrão: `rounded-xl` (16px)
-- Grandes: `rounded-2xl` (24px)
-- Extra: `rounded-3xl` (32px)
-- Círculos: `rounded-full`
-
-#### 🔧 Melhorias Técnicas
-
-**Mecânica de Jogo Revisada**:
+**Antes (v7.0)**:
 ```javascript
-// Estado separado para grid e bandeja
-const [pieces, setPieces] = useState([])           // Grid (slots)
-const [availablePieces, setAvailablePieces] = useState([])  // Bandeja
+{ level: 1, pieces: 4, rows: 2, cols: 2 }
+{ level: 6, pieces: 12, rows: 4, cols: 3 }
+```
 
-// Drag & Drop da bandeja para o grid
-handleDrop(targetRow, targetCol) {
-  const isCorrect = draggedPiece.correctRow === targetRow && 
-                    draggedPiece.correctCol === targetCol
-  
-  if (isCorrect) {
-    // Remove da bandeja
-    setAvailablePieces(prev => prev.filter(p => p.id !== draggedPiece.id))
-    
-    // Coloca no grid
-    setPieces(prev => prev.map(p => {
-      if (p.correctRow === targetRow && p.correctCol === targetCol) {
-        return { ...draggedPiece, isEmpty: false, isPlaced: true }
-      }
-      return p
-    }))
+**Agora (v7.1)**:
+```javascript
+{ level: 1, pieces: 8, rows: 2, cols: 4 }   // 8 peças
+{ level: 2, pieces: 12, rows: 3, cols: 4 }  // 12 peças
+{ level: 3, pieces: 15, rows: 3, cols: 5 }  // 15 peças
+{ level: 4, pieces: 20, rows: 4, cols: 5 }  // 20 peças
+{ level: 5, pieces: 24, rows: 4, cols: 6 }  // 24 peças
+{ level: 6, pieces: 30, rows: 5, cols: 6 }  // 30 peças ✅
+```
+
+**Progressão**: 8 → 12 → 15 → 20 → 24 → 30 peças
+
+---
+
+### 2. 💡 **BOTÃO "DICA"** na Tela de Jogo
+
+**Especificação**: *"Possui botões de 'Dica' e 'Tela Cheia'"*
+
+**Implementação**:
+```jsx
+<button onClick={() => setShowHint(true)}>
+  💡 Dica
+</button>
+```
+
+**Funcionalidade**:
+- Clica → Mostra imagem completa em fullscreen
+- Overlay escuro com foto original
+- "👆 Toque para fechar"
+- Ajuda criança a visualizar resultado final
+
+**Visual**:
+```
+Overlay preto 80%
+   ┌──────────────┐
+   │              │
+   │  [FOTO       │  ← Imagem original
+   │   COMPLETA]  │    em alta resolução
+   │              │
+   └──────────────┘
+ 👆 Toque para fechar
+```
+
+---
+
+### 3. ⛶ **BOTÃO "TELA CHEIA"** na Tela de Jogo
+
+**Especificação**: *"Possui botões de 'Dica' e 'Tela Cheia'"*
+
+**Implementação**:
+```javascript
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+    setIsFullscreen(true)
+  } else {
+    document.exitFullscreen()
+    setIsFullscreen(false)
   }
 }
 ```
 
-**Performance**:
-- Tailwind CSS com tree-shaking automático
-- PostCSS para otimização
-- Bundle size reduzido em ~40%
+**Botão**:
+```jsx
+<button onClick={toggleFullscreen}>
+  ⛶ Tela Cheia
+</button>
+```
 
-#### 📊 Comparação v5.0 vs v6.0
-
-| Aspecto | v5.0 | v6.0 | Melhoria |
-|---------|------|------|----------|
-| **Design System** | CSS custom | Tailwind | +100% |
-| **Mecânica** | Swap no grid | Bandeja → Grid | +200% clareza |
-| **Código CSS** | 800 linhas | 100 linhas | -87% |
-| **Bundle Size** | ~150kb | ~90kb | -40% |
-| **Manutenibilidade** | Média | Alta | +150% |
-| **Visual** | Bom | Excelente | +300% |
-
-#### 🎯 Experiência do Usuário
-
-**Fluxo Simplificado**:
-1. **Upload**: Escolhe 6 fotos → Grid 3x3 clean → Botão grande
-2. **Jogo**: Vê grid vazio + bandeja embaixo → Arrasta peça → Slot correto = ✓
-3. **Sucesso**: Confetes + Estrelas + Foto completa + Próximo nível
-
-**Feedback Visual**:
-- Slots vazios: Borda pontilhada cinza
-- Peça correta: Check verde no canto
-- Hover: Peça levanta (`hover:-translate-y-2`)
-- Drag: Opacidade 50% + escala 95%
-- Active: Botões afundam (toy-shadow)
-
-#### 🌈 Design Tokens
-
-**Spacing**:
-- `gap-2`: 8px (grid)
-- `gap-4`: 16px (bandeja)
-- `p-4`: 16px (padding padrão)
-- `p-6`: 24px (padding large)
-
-**Shadows**:
-- `shadow-md`: Médio
-- `shadow-lg`: Grande
-- `shadow-xl`: Extra grande
-- `shadow-2xl`: Máximo
-
-**Transitions**:
-- `transition-all`: Suave em todas propriedades
-- `duration-300`: 300ms padrão
-- `ease-in-out`: Curva suave
-
-#### 🚀 Dependências
-
-**Adicionadas**:
-- `tailwindcss`: ^3.4.0
-- `autoprefixer`: ^10.4.16
-- `postcss`: ^8.4.32
-
-**Mantidas**:
-- `react`: ^18.2.0
-- `react-dom`: ^18.2.0
-- `canvas-confetti`: ^1.9.2
-- `heic2any`: ^0.0.4
-
-#### 📱 Responsividade
-
-**Mobile (< 768px)**:
-- Grid compacto
-- Bandeja 100% largura
-- Scroll horizontal suave
-- Botões maiores para toque
-
-**Desktop**:
-- Layout otimizado
-- Hover effects
-- Transições suaves
+**Funcionalidade**:
+- Alterna entre modo normal e fullscreen
+- Usa Fullscreen API nativa
+- Imersão total para a criança
 
 ---
 
-## Versões Anteriores
+### 4. ✨ **BOTÃO "GERAR FOTO ALEATÓRIA"** no Upload
 
-## [5.0.0] - Botões sobrepostos com blur, puzzle com botão INICIAR
-## [4.0.0] - Grid responsivo, puzzle embaralhado, UX para crianças
-## [3.0.0] - PWA + Botão único
-## [2.0.0] - Drag & Drop
-## [1.0.0] - Lançamento inicial
+**Especificação**: *"ou escolher a opção de 'Gerar Foto Aleatória'"*
+
+**Implementação**:
+```jsx
+<button onClick={generateRandomImages}>
+  ✨ Gerar Foto Aleatória ({6 - uploadedImages.length} restantes)
+</button>
+```
+
+**Funcionalidade**:
+```javascript
+const generateRandomImages = async () => {
+  const randomImages = await Promise.all(
+    RANDOM_IMAGES.slice(0, 6 - uploadedImages.length).map(url => 
+      // Carrega imagem de Picsum.photos
+      // Converte para base64
+      // Adiciona ao uploadedImages
+    )
+  )
+  setUploadedImages(prev => [...prev, ...randomImages])
+}
+```
+
+**Fontes**:
+- Picsum.photos (imagens aleatórias 800x600)
+- 6 URLs diferentes
+- Preenche slots vazios automaticamente
+
+**Visual**:
+```
+┌─────────────────────────────┐
+│ ✨ Gerar Foto Aleatória     │  ← Botão gradiente
+│    (3 restantes)            │    roxo → rosa
+└─────────────────────────────┘
+```
+
+---
+
+### 5. 🎵 **TRILHA SONORA** na Tela de Boas-Vindas
+
+**Especificação**: *"trilha sonora convidativa"*
+
+**Implementação**:
+```javascript
+const playBackgroundMusic = () => {
+  const oscillator = ctx.createOscillator()
+  const gainNode = ctx.createGain()
+  
+  oscillator.type = 'sine'
+  oscillator.frequency.setValueAtTime(523.25, ctx.currentTime) // C5
+  gainNode.gain.setValueAtTime(0.1, ctx.currentTime)
+  
+  oscillator.start()  // Loop contínuo
+}
+```
+
+**Controle**:
+- Ícone 🎵 na tela de boas-vindas
+- Toggle liga/desliga música
+- Oscilador simples (tom contínuo)
+
+---
+
+### 6. 👏 **SOM DE APLAUSOS** na Tela de Conquista
+
+**Especificação**: *"com confetes e aplausos"*
+
+**Implementação**:
+```javascript
+const playApplause = () => {
+  // Gera ruído branco (simula aplausos)
+  const whiteNoise = ctx.createBufferSource()
+  // 2 segundos de duração
+  // Fade out gradual
+}
+```
+
+**Quando toca**:
+- Ao completar puzzle (junto com confetes)
+- Ao entrar na tela de vitória
+
+---
+
+### 7. 📷 **SUPORTE AVIF** no Upload
+
+**Especificação**: *"(JPG, PNG, HEIC, WEBP, AVIF)"*
+
+**Implementação**:
+```jsx
+<input 
+  type="file" 
+  accept="image/*,.heic,.avif"  // ← AVIF adicionado
+/>
+```
+
+**Filtros**:
+```jsx
+{['JPG', 'PNG', 'JPEG', 'WEBP', 'HEIC', 'AVIF'].map(format => (
+  <button>{format}</button>
+))}
+```
+
+---
+
+## 🎨 Layout da Tela de Jogo (v7.1)
+
+```
+┌─────────────────────────────────────┐
+│  ←    Progresso: 12/30    🔊       │
+│  ▓▓▓▓▓▓░░░░░░░░░░░░░░░░░░         │
+├─────────────────────────────────────┤
+│                                     │
+│   [  GRID 5x6  -  30 PEÇAS  ]      │  ← Puzzle
+│   Peças embaralhadas                │
+│   Efeito 3D no hover                │
+│                                     │
+├─────────────────────────────────────┤
+│  💡 Dica  │  ⛶ Tela Cheia  │  🔄  │  ← Novos botões!
+└─────────────────────────────────────┘
+```
+
+---
+
+## 📊 Antes vs Depois
+
+| Recurso | v7.0 | v7.1 | Status |
+|---------|------|------|--------|
+| **Peças por Nível** | 4-12 | 8-30 | ✅ Corrigido |
+| **Botão Dica** | ❌ | ✅ | ✅ Adicionado |
+| **Botão Tela Cheia** | ❌ | ✅ | ✅ Adicionado |
+| **Gerar Aleatória** | ❌ | ✅ | ✅ Adicionado |
+| **Trilha Sonora** | ❌ | ✅ | ✅ Adicionado |
+| **Som Aplausos** | ❌ | ✅ | ✅ Adicionado |
+| **Suporte AVIF** | ❌ | ✅ | ✅ Adicionado |
+
+---
+
+## 🎯 Sistema de Som Completo
+
+### Efeitos Sonoros
+```javascript
+// Beeps para interações
+playBeep(400, 0.1)   // Backspace
+playBeep(500, 0.05)  // Tecla pressionada
+playBeep(600, 0.15)  // Botão clicado
+playBeep(700, 0.2)   // Peça correta
+playBeep(800, 0.2)   // Completou nível
+```
+
+### Música de Fundo
+```javascript
+// Oscilador contínuo (C5 = 523.25 Hz)
+// Toca automaticamente na tela de boas-vindas
+// Toggle com botão 🎵/🔇
+```
+
+### Aplausos
+```javascript
+// Ruído branco com fade out
+// Simula palmas da plateia
+// Toca ao completar puzzle
+```
+
+---
+
+## 🎮 Experiência Completa (v7.1)
+
+**1. Boas-Vindas**:
+- Música de fundo tocando 🎵
+- Clica "JOGAR" → Som de beep
+
+**2. Cadastro**:
+- Clica teclas → Beep curto
+- Upload avatar → Beep médio
+
+**3. Upload**:
+- Botão "Gerar Aleatória" → Carrega 6 fotos
+- Cada upload → Beep
+
+**4. Seleção**:
+- Clica nível → Beep
+- Vê progresso total
+
+**5. Jogo (8-30 peças!)**:
+- Arrasta peça → Beep curto
+- Peça correta → Beep alegre
+- Botão "💡 Dica" → Mostra foto
+- Botão "⛶ Tela Cheia" → Fullscreen
+- Completa → **Aplausos + Confetes!**
+
+**6. Vitória**:
+- Aplausos tocando
+- Confetes caindo
+- 3 estrelas pulsando
+- "PRÓXIMA FASE"
+
+---
+
+## 🚀 Como Testar
+
+```bash
+npm install
+npm run dev
+```
+
+**Teste Completo**:
+1. Welcome → Música toca automaticamente
+2. Register → Digita nome (beep nas teclas)
+3. Upload → Clica "Gerar Aleatória" (6 fotos random)
+4. Levels → Vê "30 peças" no nível 6
+5. Game → Testa botões "Dica" e "Tela Cheia"
+6. Victory → Ouve aplausos + vê confetes
+
+---
+
+## ✅ Checklist de Compatibilidade
+
+- [x] ✅ 8-30 peças (não 4-12)
+- [x] ✅ Botão "Dica" na tela de jogo
+- [x] ✅ Botão "Tela Cheia" na tela de jogo
+- [x] ✅ Botão "Gerar Aleatória" no upload
+- [x] ✅ Trilha sonora na tela de boas-vindas
+- [x] ✅ Som de aplausos na vitória
+- [x] ✅ Suporte AVIF no upload
+
+**Versão 7.1** está 100% compatível com as especificações! 🎯✨
