@@ -1,4 +1,4 @@
-const CACHE_NAME = 'quebra-cabeca-v4'
+const CACHE_NAME = 'quebra-cabeca-v5'
 const urlsToCache = [
   '/',
   '/index.html',

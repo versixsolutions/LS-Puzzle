@@ -13,7 +13,7 @@ const LEVELS = [
 ]
 
 const MAX_IMAGES = 6
-const APP_VERSION = '4.0.0'
+const APP_VERSION = '5.0.0'
 
 function App() {
   const [gameState, setGameState] = useState('upload')
@@ -26,11 +26,11 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [completedLevels, setCompletedLevels] = useState(new Set())
   const [updateAvailable, setUpdateAvailable] = useState(false)
+  const [puzzleInitialized, setPuzzleInitialized] = useState(false)
   
   const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
   const canvasRef = useRef(null)
 
-  // Verifica se há atualização disponível
   useEffect(() => {
     const checkForUpdates = async () => {
       try {
@@ -43,8 +43,6 @@ function App() {
             }
           })
         })
-        
-        // Força verificação de atualização
         registration.update()
       } catch (e) {
         // Service worker não disponível
@@ -168,11 +166,18 @@ function App() {
     setShuffledImages(shuffled)
     setCurrentLevel(0)
     setCompletedLevels(new Set())
+    setPuzzleInitialized(false)
     
     setTimeout(() => {
       initializePuzzle(0, shuffled)
       setGameState('playing')
     }, 100)
+  }
+
+  const reviewPhotos = () => {
+    setUploadedImages([])
+    setShuffledImages([])
+    setGameState('upload')
   }
 
   const initializePuzzle = useCallback((levelIndex, images = shuffledImages) => {
@@ -222,7 +227,7 @@ function App() {
         }
       }
       
-      // Embaralha as peças no próprio grid
+      // Embaralha as peças
       const shuffled = [...newPieces]
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
@@ -235,6 +240,7 @@ function App() {
       }
       
       setPieces(shuffled)
+      setPuzzleInitialized(true)
     }
     
     img.src = image.src
@@ -265,7 +271,6 @@ function App() {
     
     playSound('drop')
     
-    // Troca as posições das peças
     setPieces(prev => prev.map(p => {
       if (p.id === draggedPiece.id) {
         const newPiece = { ...p, currentRow: targetPiece.currentRow, currentCol: targetPiece.currentCol }
@@ -280,7 +285,6 @@ function App() {
       return p
     }))
     
-    // Verifica se alguma peça ficou correta
     setTimeout(() => {
       setPieces(current => {
         const anyCorrect = current.some((p, idx) => {
@@ -307,6 +311,12 @@ function App() {
     setDraggedPiece(null)
   }
 
+  const startPuzzle = () => {
+    if (!puzzleInitialized) {
+      initializePuzzle(currentLevel)
+    }
+  }
+
   const resetPuzzle = () => {
     initializePuzzle(currentLevel)
     setShowHint(false)
@@ -316,12 +326,18 @@ function App() {
     if (currentLevel < LEVELS.length - 1 && currentLevel < shuffledImages.length - 1) {
       const nextLvl = currentLevel + 1
       setCurrentLevel(nextLvl)
-      initializePuzzle(nextLvl)
+      setPuzzleInitialized(false)
       setGameState('playing')
-    } else {
-      setGameState('upload')
-      setShuffledImages([])
+      setTimeout(() => initializePuzzle(nextLvl), 100)
     }
+  }
+
+  const newGame = () => {
+    setUploadedImages([])
+    setShuffledImages([])
+    setGameState('upload')
+    setPuzzleInitialized(false)
+    setCompletedLevels(new Set())
   }
 
   if (gameState === 'upload') {
@@ -356,6 +372,17 @@ function App() {
                 ))}
               </div>
             )}
+            
+            {uploadedImages.length === MAX_IMAGES && (
+              <div className="overlay-buttons">
+                <button onClick={startGame} className="start-game-button-overlay">
+                  🎮 INICIAR JOGO
+                </button>
+                <button onClick={reviewPhotos} className="review-photos-button">
+                  🔄 Revisar Fotos
+                </button>
+              </div>
+            )}
           </div>
           
           {uploadedImages.length === 0 && (
@@ -364,15 +391,6 @@ function App() {
           
           {uploadedImages.length > 0 && uploadedImages.length < MAX_IMAGES && (
             <p className="hint-text">📸 Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!</p>
-          )}
-          
-          {uploadedImages.length === MAX_IMAGES && (
-            <div className="start-section">
-              <p className="success-text">🎉 Perfeito! Todas as fotos carregadas!</p>
-              <button onClick={startGame} className="start-game-button">
-                🎮 INICIAR JOGO
-              </button>
-            </div>
           )}
         </div>
       </div>
@@ -398,7 +416,7 @@ function App() {
               ➡️ Próximo Nível
             </button>
           )}
-          <button onClick={() => setGameState('upload')} className="action-button big">
+          <button onClick={newGame} className="action-button big">
             🏠 Novo Jogo
           </button>
         </div>
@@ -414,13 +432,21 @@ function App() {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       <div className="game-header">
-        <button onClick={() => setGameState('upload')} className="header-button big">
-          🏠 Menu
+        <button 
+          onClick={() => setShowHint(!showHint)} 
+          className="header-button big hint-btn"
+        >
+          💡 {showHint ? 'Esconder' : 'Ver'} Dica
         </button>
         <h2 className="level-title">Nível {level.level}</h2>
-        <button onClick={() => setSoundEnabled(!soundEnabled)} className="header-button big">
-          {soundEnabled ? '🔊' : '🔇'}
-        </button>
+        <div className="header-controls">
+          <button onClick={resetPuzzle} className="header-button big icon-btn" title="Reiniciar">
+            🔄
+          </button>
+          <button onClick={() => setSoundEnabled(!soundEnabled)} className="header-button big icon-btn">
+            {soundEnabled ? '🔊' : '🔇'}
+          </button>
+        </div>
       </div>
 
       <div className="puzzle-area">
@@ -431,12 +457,20 @@ function App() {
           </div>
         )}
         
+        {!puzzleInitialized && (
+          <div className="start-overlay">
+            <button onClick={startPuzzle} className="start-puzzle-button">
+              🎮 INICIAR
+            </button>
+          </div>
+        )}
+        
         <div className="puzzle-grid" style={{ gridTemplateColumns: `repeat(${level.cols}, 1fr)`, gridTemplateRows: `repeat(${level.rows}, 1fr)` }}>
           {pieces.map((piece) => (
             <div
               key={piece.id}
               className={`puzzle-piece ${piece.isPlaced ? 'correct' : ''} ${draggedPiece?.id === piece.id ? 'dragging' : ''}`}
-              draggable={!piece.isPlaced}
+              draggable={!piece.isPlaced && puzzleInitialized}
               onDragStart={(e) => handleDragStart(e, piece)}
               onDragEnd={handleDragEnd}
               onDragOver={handleDragOver}
@@ -454,11 +488,8 @@ function App() {
       </div>
 
       <div className="game-footer">
-        <button onClick={() => setShowHint(!showHint)} className="game-button big">
-          💡 {showHint ? 'Esconder' : 'Ver'} Dica
-        </button>
-        <button onClick={resetPuzzle} className="game-button big reset">
-          🔄 Reiniciar
+        <button onClick={newGame} className="game-button big new-game">
+          🏠 Novo Jogo
         </button>
       </div>
     </div>
