@@ -30,10 +30,43 @@ function App() {
   const [interactionMode, setInteractionMode] = useState('drag') // 'drag' or 'click'
   const [selectedPiece, setSelectedPiece] = useState(null)
   const [userName, setUserName] = useState(localStorage.getItem('userName') || '')
+  const [savedAlbums, setSavedAlbums] = useState(() => {
+    try {
+      const saved = localStorage.getItem('savedAlbums')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
   
   const saveUserName = (name) => {
     setUserName(name)
     localStorage.setItem('userName', name)
+  }
+  
+  const saveAlbum = (name) => {
+    if (uploadedImages.length === MAX_IMAGES) {
+      const newAlbum = {
+        id: Date.now(),
+        name: name || `Álbum ${savedAlbums.length + 1}`,
+        images: [...uploadedImages],
+        createdAt: new Date().toISOString()
+      }
+      const updatedAlbums = [...savedAlbums, newAlbum]
+      setSavedAlbums(updatedAlbums)
+      localStorage.setItem('savedAlbums', JSON.stringify(updatedAlbums))
+    }
+  }
+  
+  const loadAlbum = (album) => {
+    setUploadedImages(album.images)
+    setGameState('upload')
+  }
+  
+  const deleteAlbum = (albumId) => {
+    const updatedAlbums = savedAlbums.filter(album => album.id !== albumId)
+    setSavedAlbums(updatedAlbums)
+    localStorage.setItem('savedAlbums', JSON.stringify(updatedAlbums))
   }
   
   const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
@@ -201,12 +234,41 @@ function App() {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    canvas.width = 800
-    canvas.height = 600
-    const ctx = canvas.getContext('2d')
     const img = new Image()
     
     img.onload = () => {
+      // Calcula as dimensões do canvas baseado na proporção da imagem
+      const imageAspectRatio = img.width / img.height
+      let canvasWidth, canvasHeight
+      
+      // Define um tamanho base e ajusta conforme a proporção
+      const baseSize = 600
+      
+      if (imageAspectRatio > 1) {
+        // Imagem mais larga que alta
+        canvasWidth = baseSize * imageAspectRatio
+        canvasHeight = baseSize
+      } else {
+        // Imagem mais alta que larga ou quadrada
+        canvasWidth = baseSize
+        canvasHeight = baseSize / imageAspectRatio
+      }
+      
+      // Limita os tamanhos para não ficarem muito grandes
+      const maxSize = 800
+      if (canvasWidth > maxSize) {
+        canvasWidth = maxSize
+        canvasHeight = maxSize / imageAspectRatio
+      }
+      if (canvasHeight > maxSize) {
+        canvasHeight = maxSize
+        canvasWidth = maxSize * imageAspectRatio
+      }
+
+      canvas.width = canvasWidth
+      canvas.height = canvasHeight
+      
+      const ctx = canvas.getContext('2d')
       const pieceWidth = canvas.width / level.cols
       const pieceHeight = canvas.height / level.rows
       const newPieces = []
@@ -502,6 +564,14 @@ function App() {
           </p>
         )}
         
+        {/* Botão para álbuns salvos - só mostra quando não há fotos carregadas */}
+        {uploadedImages.length === 0 && savedAlbums.length > 0 && (
+          <button onClick={() => setGameState('albums')} className="albums-button">
+            <span className="album-icon">📚</span>
+            Meus Álbuns ({savedAlbums.length})
+          </button>
+        )}
+        
         <div className="upload-container">
           <div className="upload-area">
             <input type="file" id="imageUpload" accept="image/*,.heic" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
@@ -528,6 +598,10 @@ function App() {
                   <span className="play-icon">🎮</span>
                   INICIAR JOGO
                 </button>
+                <button onClick={() => saveAlbum(`Álbum ${savedAlbums.length + 1}`)} className="save-album-button">
+                  <span className="save-icon">💾</span>
+                  Salvar Álbum
+                </button>
                 <button onClick={reviewPhotos} className="review-photos-button">
                   <span className="review-icon">🔄</span>
                   Revisar Fotos
@@ -549,6 +623,94 @@ function App() {
               Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!
             </p>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  if (gameState === 'albums') {
+    return (
+      <div className="upload-screen">
+        {/* Botão de atualização discreto */}
+        <button 
+          onClick={handleUpdate} 
+          className="update-app-button"
+          title="Atualizar aplicativo"
+        >
+          🔄
+        </button>
+        
+        {updateAvailable && (
+          <div className="update-banner">
+            <span>✨ Nova versão disponível!</span>
+            <button onClick={handleUpdate} className="update-button">
+              🔄 Atualizar Agora
+            </button>
+          </div>
+        )}
+        
+        {/* Saudação personalizada */}
+        {userName && (
+          <div className="welcome-message">
+            <h2>Olá, {userName}! 👋</h2>
+            <p>Escolha um álbum salvo!</p>
+          </div>
+        )}
+        
+        {/* Título dos álbuns */}
+        <div className="albums-title-section">
+          <div className="albums-title-container">
+            <div className="albums-icon">📚</div>
+            <h2 className="albums-title">Meus Álbuns</h2>
+          </div>
+        </div>
+        
+        {/* Lista de álbuns salvos */}
+        <div className="upload-container">
+          <div className="upload-area">
+            {savedAlbums.length === 0 ? (
+              <div className="no-albums">
+                <div className="no-albums-icon">📭</div>
+                <h3>Nenhum álbum salvo</h3>
+                <p>Salve seus álbuns favoritos para jogar rapidamente!</p>
+              </div>
+            ) : (
+              <div className="albums-grid">
+                {savedAlbums.map((album) => (
+                  <div key={album.id} className="album-card">
+                    <div className="album-preview">
+                      <div className="album-thumbnails">
+                        {album.images.slice(0, 4).map((img, index) => (
+                          <img key={index} src={img.src} alt={`Foto ${index + 1}`} />
+                        ))}
+                        {album.images.length > 4 && (
+                          <div className="more-photos">+{album.images.length - 4}</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="album-info">
+                      <h4>{album.name}</h4>
+                      <p>{new Date(album.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="album-actions">
+                      <button onClick={() => loadAlbum(album)} className="load-album-button">
+                        <span className="load-icon">🎮</span>
+                        Jogar
+                      </button>
+                      <button onClick={() => deleteAlbum(album.id)} className="delete-album-button">
+                        <span className="delete-icon">🗑️</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <button onClick={() => setGameState('upload')} className="back-button">
+              <span className="back-icon">⬅️</span>
+              Voltar
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -583,16 +745,11 @@ function App() {
           </div>
         )}
         
-        {/* Título da seleção de modo */}
-        <div className="hero-section">
-          <div className="logo-container">
-            <div className="logo-icon">🎯</div>
-            <h1 className="main-title">Modo de<br/>Jogo</h1>
-            <div className="sparkle-effects">
-              <span className="sparkle">🎮</span>
-              <span className="sparkle">🎯</span>
-              <span className="sparkle">🎮</span>
-            </div>
+        {/* Título da seleção de modo - menor */}
+        <div className="mode-title-section">
+          <div className="mode-title-container">
+            <div className="mode-icon-small">🎯</div>
+            <h2 className="mode-title">Escolha o Modo</h2>
           </div>
         </div>
         
@@ -648,19 +805,20 @@ function App() {
           <img src={shuffledImages[currentLevel].src} alt="Completo" />
         </div>
         <div className="completion-buttons">
-          <button onClick={resetPuzzle} className="action-button big">
-            🔄 Jogar Novamente
-          </button>
           {!allCompleted && currentLevel < shuffledImages.length - 1 && (
-            <button onClick={nextLevel} className="action-button big primary">
+            <button onClick={nextLevel} className="action-button big primary next-level-only">
               ➡️ Próximo Nível
             </button>
           )}
-          <button onClick={newGame} className="action-button big">
-            🏠 Novo Jogo
-          </button>
+          {allCompleted && (
+            <div className="victory-section">
+              <p className="victory-text">🏆 VOCÊ É UM CAMPEÃO! 🏆</p>
+              <button onClick={newGame} className="action-button big primary">
+                🏠 Novo Jogo
+              </button>
+            </div>
+          )}
         </div>
-        {allCompleted && <p className="victory-text">🏆 VOCÊ É UM CAMPEÃO! 🏆</p>}
       </div>
     )
   }
