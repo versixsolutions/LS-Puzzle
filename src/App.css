@@ -103,6 +103,11 @@ body {
   position: relative;
 }
 
+/* Estado com fotos carregadas - layout otimizado */
+.upload-screen.has-photos {
+  padding-top: clamp(60px, 8vh, 80px); /* Mais espaço no topo para o botão de update */
+}
+
 /* Mensagem de boas-vindas */
 .welcome-message {
   text-align: center;
@@ -316,12 +321,12 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: clamp(15px, 4vh, 20px);
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: var(--border-radius);
-  padding: 40px;
+  padding: clamp(30px, 6vh, 40px);
   animation: fadeIn 0.3s ease;
   z-index: 10;
 }
@@ -334,9 +339,9 @@ body {
 .start-game-button-overlay {
   background: linear-gradient(135deg, var(--color-success), #45a049);
   color: var(--color-white);
-  font-size: clamp(28px, 7vw, 48px);
+  font-size: clamp(32px, 8vw, 48px);
   font-weight: 900;
-  padding: 30px 60px;
+  padding: clamp(25px, 5vh, 30px) clamp(50px, 10vw, 60px);
   border-radius: var(--border-radius);
   border: none;
   cursor: pointer;
@@ -344,7 +349,7 @@ body {
   animation: pulse-big 2s ease infinite;
   transition: all var(--transition-normal);
   text-align: center;
-  min-width: 280px;
+  min-width: clamp(250px, 60vw, 320px);
 }
 
 @keyframes pulse-big {
@@ -370,15 +375,15 @@ body {
 .review-photos-button {
   background: rgba(255, 255, 255, 0.95);
   color: var(--color-dark);
-  font-size: clamp(18px, 4vw, 24px);
+  font-size: clamp(16px, 4vw, 20px);
   font-weight: bold;
-  padding: 18px 40px;
+  padding: clamp(15px, 3vh, 18px) clamp(30px, 6vw, 40px);
   border-radius: var(--border-radius);
   border: none;
   cursor: pointer;
   box-shadow: var(--shadow-soft);
   transition: all var(--transition-normal);
-  min-width: 240px;
+  min-width: clamp(200px, 50vw, 240px);
 }
 
 .review-photos-button:hover {

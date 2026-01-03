@@ -412,7 +412,7 @@ function App() {
 
   if (gameState === 'upload') {
     return (
-      <div className="upload-screen">
+      <div className={`upload-screen ${uploadedImages.length > 0 ? 'has-photos' : ''}`}>
         {/* Botão de atualização discreto */}
         <button 
           onClick={handleUpdate} 
@@ -439,18 +439,20 @@ function App() {
           </div>
         )}
         
-        {/* Título maior e mais chamativo */}
-        <div className="hero-section">
-          <div className="logo-container">
-            <div className="logo-icon">🧩</div>
-            <h1 className="main-title">Quebra-Cabeça<br/>Mágico</h1>
-            <div className="sparkle-effects">
-              <span className="sparkle">✨</span>
-              <span className="sparkle">⭐</span>
-              <span className="sparkle">✨</span>
+        {/* Título maior e mais chamativo - só mostra quando não há fotos carregadas */}
+        {uploadedImages.length === 0 && (
+          <div className="hero-section">
+            <div className="logo-container">
+              <div className="logo-icon">🧩</div>
+              <h1 className="main-title">Quebra-Cabeça<br/>Mágico</h1>
+              <div className="sparkle-effects">
+                <span className="sparkle">✨</span>
+                <span className="sparkle">⭐</span>
+                <span className="sparkle">✨</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
         
         {/* Campo para nome do usuário */}
         {!userName && (
@@ -487,10 +489,13 @@ function App() {
           </div>
         )}
         
-        <p className="subtitle">
-          <span className="camera-icon">📸</span>
-          Carregue {MAX_IMAGES} fotos para começar a magia!
-        </p>
+        {/* Subtítulo - só mostra quando não há fotos carregadas */}
+        {uploadedImages.length === 0 && (
+          <p className="subtitle">
+            <span className="camera-icon">📸</span>
+            Carregue {MAX_IMAGES} fotos para começar a magia!
+          </p>
+        )}
         
         <div className="upload-container">
           <div className="upload-area">
