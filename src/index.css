@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&family=Noto+Sans:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --toy-blue: #2b8cee;
+  --toy-pink: #ffb7c5;
+  --toy-yellow: #ffcf48;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Spline Sans', 'Noto Sans', sans-serif;
+  min-height: max(884px, 100dvh);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.toy-shadow {
+  box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.15);
+}
+
+.toy-shadow:active {
+  box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.15);
+  transform: translateY(4px);
+}
+
+.piece-tray::-webkit-scrollbar {
+  height: 8px;
+}
+
+.piece-tray::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.piece-tray::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 20px;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  z-index: 0;
+  opacity: 0.8;
+}
+
+/* Animações */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Peças do puzzle */
+.puzzle-piece {
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.puzzle-piece:active {
+  cursor: grabbing;
+}
+
+.puzzle-piece.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.puzzle-piece.correct {
+  pointer-events: none;
+  cursor: default;
+}
+
+.puzzle-slot {
+  transition: all 0.2s ease;
+}
+
+.puzzle-slot.drag-over {
+  border-color: var(--toy-blue);
+  background-color: rgba(43, 140, 238, 0.1);
+}

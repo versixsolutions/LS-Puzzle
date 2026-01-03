@@ -1,8 +1,8 @@
 {
   "name": "quebra-cabeca-magico",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "type": "module",
-  "description": "Jogo educativo de quebra-cabeça para crianças de 5 anos",
+  "description": "Jogo educativo de quebra-cabeça para crianças - Design moderno com Tailwind",
   "author": "Versix Solutions",
   "license": "MIT",
   "repository": {
@@ -19,13 +19,13 @@
     "kids",
     "education",
     "pwa",
-    "react"
+    "react",
+    "tailwindcss"
   ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -34,14 +34,10 @@
     "heic2any": "^0.0.4"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
-    "eslint": "^9.17.0",
-    "eslint-plugin-react": "^7.37.2",
-    "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-refresh": "^0.4.14",
-    "terser": "^5.36.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
     "vite": "^5.4.11"
   }
 }

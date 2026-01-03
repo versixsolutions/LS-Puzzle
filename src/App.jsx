@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import heic2any from 'heic2any'
-import './App.css'
 
 const LEVELS = [
   { level: 1, pieces: 4, rows: 2, cols: 2 },
@@ -13,289 +12,21 @@ const LEVELS = [
 ]
 
 const MAX_IMAGES = 6
-const APP_VERSION = '5.0.0'
 
-function App() {
-  const [gameState, setGameState] = useState('upload')
+export default function App() {
+  const [screen, setScreen] = useState('upload')
   const [uploadedImages, setUploadedImages] = useState([])
   const [shuffledImages, setShuffledImages] = useState([])
   const [currentLevel, setCurrentLevel] = useState(0)
   const [pieces, setPieces] = useState([])
+  const [availablePieces, setAvailablePieces] = useState([])
   const [draggedPiece, setDraggedPiece] = useState(null)
-  const [showHint, setShowHint] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [completedLevels, setCompletedLevels] = useState(new Set())
-  const [updateAvailable, setUpdateAvailable] = useState(false)
-  const [puzzleInitialized, setPuzzleInitialized] = useState(false)
-  const [interactionMode, setInteractionMode] = useState(userProfile.interactionMode)
-  const [showSettings, setShowSettings] = useState(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const [userName, setUserName] = useState(localStorage.getItem('userName') || '')
-  const [userProfile, setUserProfile] = useState(() => {
-    try {
-      const saved = localStorage.getItem('userProfile')
-      return saved ? JSON.parse(saved) : {
-        preferredColors: ['#4A90E2', '#F5A623'],
-        soundVolume: 0.7,
-        animationSpeed: 'normal',
-        interactionMode: 'drag',
-        visualComplexity: 'normal',
-        rewardType: 'confetti',
-        confettiIntensity: 'medium'
-      }
-    } catch {
-      return {
-        preferredColors: ['#4A90E2', '#F5A623'],
-        soundVolume: 0.7,
-        animationSpeed: 'normal',
-        interactionMode: 'drag',
-        visualComplexity: 'normal',
-        rewardType: 'confetti',
-        confettiIntensity: 'medium'
-      }
-    }
-  })
   
-  const saveUserName = (name) => {
-    setUserName(name)
-    localStorage.setItem('userName', name)
-  }
-  
-  const saveUserProfile = (profile) => {
-    setUserProfile(profile)
-    localStorage.setItem('userProfile', JSON.stringify(profile))
-  }
-  
-  const smoothTransition = (callback, delay = 300) => {
-    if (userProfile.animationSpeed !== 'off') {
-      setIsTransitioning(true)
-      setTimeout(() => {
-        callback()
-        setTimeout(() => setIsTransitioning(false), 100)
-      }, delay)
-    } else {
-      callback()
-    }
-  }
-  
-  const saveAlbum = (name) => {
-    if (uploadedImages.length === MAX_IMAGES) {
-      const newAlbum = {
-        id: Date.now(),
-        name: name || `Álbum ${savedAlbums.length + 1}`,
-        images: [...uploadedImages],
-        createdAt: new Date().toISOString()
-      }
-      const updatedAlbums = [...savedAlbums, newAlbum]
-      setSavedAlbums(updatedAlbums)
-      localStorage.setItem('savedAlbums', JSON.stringify(updatedAlbums))
-    }
-  }
-  
-  const loadAlbum = (album) => {
-    setUploadedImages(album.images)
-    setGameState('upload')
-  }
-  
-  const deleteAlbum = (albumId) => {
-    const updatedAlbums = savedAlbums.filter(album => album.id !== albumId)
-    setSavedAlbums(updatedAlbums)
-    localStorage.setItem('savedAlbums', JSON.stringify(updatedAlbums))
-  }
-
-  // Prevenir scroll da página durante drag operations em PWA
-  useEffect(() => {
-    const preventScroll = (e) => {
-      if (gameState === 'playing' && (draggedPiece || selectedPiece)) {
-        e.preventDefault()
-        return false
-      }
-    }
-
-    const preventTouchMove = (e) => {
-      if (gameState === 'playing' && (draggedPiece || selectedPiece)) {
-        e.preventDefault()
-      }
-    }
-
-    // Adicionar event listeners globais
-    document.addEventListener('touchmove', preventTouchMove, { passive: false })
-    document.addEventListener('scroll', preventScroll, { passive: false })
-    document.addEventListener('wheel', preventScroll, { passive: false })
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('touchmove', preventTouchMove)
-      document.removeEventListener('scroll', preventScroll)
-      document.removeEventListener('wheel', preventScroll)
-      
-      // Garantir que o scroll seja restaurado
-      document.body.style.overflow = ''
-      document.documentElement.style.overflow = ''
-    }
-  }, [gameState, draggedPiece, selectedPiece])
-  
-  const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
   const canvasRef = useRef(null)
 
-  useEffect(() => {
-    const checkForUpdates = async () => {
-      try {
-        const registration = await navigator.serviceWorker.ready
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              setUpdateAvailable(true)
-            }
-          })
-        })
-        registration.update()
-      } catch (e) {
-        // Service worker não disponível
-      }
-    }
-    
-    if ('serviceWorker' in navigator && gameState === 'upload') {
-      checkForUpdates()
-    }
-  }, [gameState])
-
-  const handleUpdate = () => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration().then(reg => {
-        reg?.waiting?.postMessage({ type: 'SKIP_WAITING' })
-      })
-      window.location.reload()
-    }
-  }
-
-  useEffect(() => {
-    audioRef.current.select = createBeep(400, 0.1, 'sine')
-    audioRef.current.drop = createBeep(500, 0.15, 'triangle')
-    audioRef.current.correct = createBeep(600, 0.2, 'square')
-    audioRef.current.complete = createMelody()
-  }, [])
-
-  function createBeep(frequency, duration, type = 'sine', volume = userProfile.soundVolume) {
-    return () => {
-      if (!soundEnabled) return
-      try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)()
-        const oscillator = audioContext.createOscillator()
-        const gainNode = audioContext.createGain()
-        
-        oscillator.connect(gainNode)
-        gainNode.connect(audioContext.destination)
-        
-        oscillator.frequency.value = frequency
-        oscillator.type = type
-        gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime)
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
-        
-        oscillator.start(audioContext.currentTime)
-        oscillator.stop(audioContext.currentTime + duration)
-      } catch (e) {
-        // Audio não disponível
-      }
-    }
-  }
-
-  function createMelody() {
-    return () => {
-      if (!soundEnabled) return
-      const notes = [523.25, 587.33, 659.25, 783.99, 880.00]
-      notes.forEach((freq, i) => {
-        setTimeout(() => createBeep(freq, 0.25, 'sine')(), i * 120)
-      })
-    }
-  }
-
-  const playSound = (soundType) => {
-    if (audioRef.current[soundType]) audioRef.current[soundType]()
-  }
-
-  const triggerConfetti = (intensity = userProfile.confettiIntensity) => {
-    let duration, particleCount, intervalTime
-    
-    switch (intensity) {
-      case 'gentle':
-        duration = 2000
-        particleCount = 25
-        intervalTime = 400
-        break
-      case 'medium':
-        duration = 3000
-        particleCount = 50
-        intervalTime = 250
-        break
-      case 'celebration':
-        duration = 4000
-        particleCount = 75
-        intervalTime = 200
-        break
-      default:
-        duration = 3000
-        particleCount = 50
-        intervalTime = 250
-    }
-    
-    const animationEnd = Date.now() + duration
-    const defaults = { 
-      startVelocity: 30, 
-      spread: 360, 
-      ticks: 60, 
-      zIndex: 10000,
-      colors: userProfile.preferredColors
-    }
-
-    const interval = setInterval(() => {
-      const timeLeft = animationEnd - Date.now()
-      if (timeLeft <= 0) return clearInterval(interval)
-
-      const currentParticleCount = particleCount * (timeLeft / duration)
-      confetti({ ...defaults, particleCount: currentParticleCount, origin: { x: Math.random() * 0.4 + 0.1, y: Math.random() - 0.2 } })
-      confetti({ ...defaults, particleCount: currentParticleCount, origin: { x: Math.random() * 0.4 + 0.6, y: Math.random() - 0.2 } })
-    }, intervalTime)
-  }
-
-  const showStars = () => {
-    // Criar estrelas animadas na tela
-    const starsContainer = document.createElement('div')
-    starsContainer.className = 'stars-celebration'
-    starsContainer.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 10000;
-    `
-    
-    for (let i = 0; i < 8; i++) {
-      const star = document.createElement('div')
-      star.innerHTML = '⭐'
-      star.style.cssText = `
-        position: absolute;
-        font-size: 48px;
-        left: ${Math.random() * 80 + 10}%;
-        top: ${Math.random() * 80 + 10}%;
-        animation: starFloat 2s ease-out forwards;
-        animation-delay: ${i * 0.2}s;
-      `
-      starsContainer.appendChild(star)
-    }
-    
-    document.body.appendChild(starsContainer)
-    
-    setTimeout(() => {
-      if (starsContainer.parentNode) {
-        starsContainer.parentNode.removeChild(starsContainer)
-      }
-    }, 3000)
-  }
-
+  // Upload de imagens
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files)
     if (uploadedImages.length + files.length > MAX_IMAGES) {
@@ -334,31 +65,16 @@ function App() {
     setUploadedImages(prev => prev.filter((_, i) => i !== index))
   }
 
-  const startGame = (selectedMode = null) => {
+  const startGame = () => {
     const shuffled = [...uploadedImages].sort(() => Math.random() - 0.5)
     setShuffledImages(shuffled)
     setCurrentLevel(0)
     setCompletedLevels(new Set())
-    setPuzzleInitialized(false)
-    
-    // Se um modo foi selecionado, define-o
-    if (selectedMode) {
-      setInteractionMode(selectedMode)
-    }
-    
-    setTimeout(() => {
-      initializePuzzle(0, shuffled)
-      setGameState('playing')
-    }, 100)
+    initializePuzzle(0, shuffled)
+    setScreen('game')
   }
 
-  const reviewPhotos = () => {
-    setUploadedImages([])
-    setShuffledImages([])
-    setGameState('upload')
-  }
-
-  const initializePuzzle = useCallback((levelIndex, images = shuffledImages) => {
+  const initializePuzzle = (levelIndex, images = shuffledImages) => {
     const level = LEVELS[levelIndex]
     const image = images[levelIndex]
     if (!image) return
@@ -366,44 +82,16 @@ function App() {
     const canvas = canvasRef.current
     if (!canvas) return
 
+    canvas.width = 800
+    canvas.height = 600
+    const ctx = canvas.getContext('2d')
     const img = new Image()
     
     img.onload = () => {
-      // Calcula as dimensões do canvas baseado na proporção da imagem
-      const imageAspectRatio = img.width / img.height
-      let canvasWidth, canvasHeight
-      
-      // Define um tamanho base e ajusta conforme a proporção
-      const baseSize = 600
-      
-      if (imageAspectRatio > 1) {
-        // Imagem mais larga que alta
-        canvasWidth = baseSize * imageAspectRatio
-        canvasHeight = baseSize
-      } else {
-        // Imagem mais alta que larga ou quadrada
-        canvasWidth = baseSize
-        canvasHeight = baseSize / imageAspectRatio
-      }
-      
-      // Limita os tamanhos para não ficarem muito grandes
-      const maxSize = 800
-      if (canvasWidth > maxSize) {
-        canvasWidth = maxSize
-        canvasHeight = maxSize / imageAspectRatio
-      }
-      if (canvasHeight > maxSize) {
-        canvasHeight = maxSize
-        canvasWidth = maxSize * imageAspectRatio
-      }
-
-      canvas.width = canvasWidth
-      canvas.height = canvasHeight
-      
-      const ctx = canvas.getContext('2d')
       const pieceWidth = canvas.width / level.cols
       const pieceHeight = canvas.height / level.rows
-      const newPieces = []
+      const gridPieces = []
+      const trayPieces = []
       
       for (let row = 0; row < level.rows; row++) {
         for (let col = 0; col < level.cols; col++) {
@@ -422,53 +110,36 @@ function App() {
             pieceWidth, pieceHeight
           )
           
-          newPieces.push({
+          const piece = {
             id: row * level.cols + col,
             correctRow: row,
             correctCol: col,
-            currentRow: row,
-            currentCol: col,
             image: pieceCanvas.toDataURL(),
             isPlaced: false
-          })
+          }
+          
+          gridPieces.push({ ...piece, isEmpty: true })
+          trayPieces.push(piece)
         }
       }
       
-      // Embaralha as peças
-      const shuffled = [...newPieces]
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
-        const tempRow = shuffled[i].currentRow
-        const tempCol = shuffled[i].currentCol
-        shuffled[i].currentRow = shuffled[j].currentRow
-        shuffled[i].currentCol = shuffled[j].currentCol
-        shuffled[j].currentRow = tempRow
-        shuffled[j].currentCol = tempCol
-      }
+      // Embaralha apenas as peças da bandeja
+      const shuffled = [...trayPieces].sort(() => Math.random() - 0.5)
       
-      setPieces(shuffled)
-      setPuzzleInitialized(true)
+      setPieces(gridPieces)
+      setAvailablePieces(shuffled)
     }
     
     img.src = image.src
-  }, [shuffledImages])
+  }
 
   const handleDragStart = (e, piece) => {
     if (piece.isPlaced) return
     setDraggedPiece(piece)
-    playSound('select')
     e.dataTransfer.effectAllowed = 'move'
-    // Melhorar feedback visual para drag
-    e.dataTransfer.setData('text/plain', piece.id)
-    setTimeout(() => { 
-      e.target.style.opacity = '0.6'
-      e.target.style.transform = 'scale(1.1) rotate(5deg)'
-    }, 0)
   }
 
-  const handleDragEnd = (e) => {
-    e.target.style.opacity = '1'
-    e.target.style.transform = 'scale(1) rotate(0deg)'
+  const handleDragEnd = () => {
     setDraggedPiece(null)
   }
 
@@ -477,746 +148,339 @@ function App() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  // Novo: Suporte a touch events para melhor aderência
-  const handleTouchStart = (e, piece) => {
-    if (piece.isPlaced || interactionMode === 'click') return
-
-    // Prevenir todos os comportamentos padrão do navegador
-    e.preventDefault()
-    e.stopPropagation()
-
-    // Prevenir scroll da página durante drag
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
-
-    setDraggedPiece(piece)
-    playSound('select')
-
-    // Feedback visual imediato
-    e.target.style.opacity = '0.6'
-    e.target.style.transform = 'scale(1.1) rotate(5deg)'
-    e.target.style.zIndex = '1000'
-  }
-
-  const handleTouchEnd = (e, piece) => {
-    if (interactionMode === 'click') return
-
-    // Prevenir comportamentos padrão
-    e.preventDefault()
-    e.stopPropagation()
-
-    // Restaurar scroll da página
-    document.body.style.overflow = ''
-    document.documentElement.style.overflow = ''
-
-    // Resetar estilos visuais
-    e.target.style.opacity = '1'
-    e.target.style.transform = 'scale(1) rotate(0deg)'
-    e.target.style.zIndex = ''
-
-    // Detectar se foi solto sobre outra peça
-    const touch = e.changedTouches[0]
-    const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY)
-    if (elementAtPoint && elementAtPoint.closest('.puzzle-piece')) {
-      const targetPieceId = elementAtPoint.closest('.puzzle-piece').getAttribute('data-piece-id')
-      const targetPiece = pieces.find(p => p.id.toString() === targetPieceId)
-      if (targetPiece && targetPiece.id !== piece.id) {
-        handlePieceSwap(piece, targetPiece)
-      }
-    }
-
-    setDraggedPiece(null)
-  }
-
-  // Novo: Modo click-to-move
-  const handlePieceClick = (piece) => {
-    if (!puzzleInitialized || piece.isPlaced) return
+  const handleDrop = (targetRow, targetCol) => {
+    if (!draggedPiece) return
     
-    if (interactionMode === 'click') {
-      if (selectedPiece === null) {
-        // Selecionar peça
-        setSelectedPiece(piece)
-        playSound('select')
-      } else if (selectedPiece.id === piece.id) {
-        // Desselecionar
-        setSelectedPiece(null)
-      } else {
-        // Trocar peças
-        handlePieceSwap(selectedPiece, piece)
-        setSelectedPiece(null)
-      }
-    }
-  }
-
-  // Função auxiliar para trocar peças
-  const handlePieceSwap = (draggedPiece, targetPiece) => {
-    playSound('drop')
+    const isCorrect = draggedPiece.correctRow === targetRow && draggedPiece.correctCol === targetCol
     
-    setPieces(prev => prev.map(p => {
-      if (p.id === draggedPiece.id) {
-        const newPiece = { ...p, currentRow: targetPiece.currentRow, currentCol: targetPiece.currentCol }
-        const isCorrect = newPiece.currentRow === newPiece.correctRow && newPiece.currentCol === newPiece.correctCol
-        return { ...newPiece, isPlaced: isCorrect }
-      }
-      if (p.id === targetPiece.id) {
-        const newPiece = { ...p, currentRow: draggedPiece.currentRow, currentCol: draggedPiece.currentCol }
-        const isCorrect = newPiece.currentRow === newPiece.correctRow && newPiece.currentCol === newPiece.correctCol
-        return { ...newPiece, isPlaced: isCorrect }
-      }
-      return p
-    }))
-    
-    setTimeout(() => {
-      setPieces(current => {
-        const anyCorrect = current.some((p, idx) => {
-          const oldPiece = pieces[idx]
-          return !oldPiece.isPlaced && p.isPlaced
-        })
-        
-        if (anyCorrect) {
-          playSound('correct')
+    if (isCorrect) {
+      // Remove da bandeja
+      setAvailablePieces(prev => prev.filter(p => p.id !== draggedPiece.id))
+      
+      // Coloca no grid
+      setPieces(prev => prev.map(p => {
+        if (p.correctRow === targetRow && p.correctCol === targetCol) {
+          return { ...draggedPiece, isEmpty: false, isPlaced: true }
         }
-        
-        const allCorrect = current.every(p => p.isPlaced)
-        if (allCorrect) {
-          playSound('complete')
-          if (userProfile.rewardType === 'confetti') {
-            triggerConfetti()
-          } else if (userProfile.rewardType === 'stars') {
-            showStars()
+        return p
+      }))
+      
+      // Verifica vitória
+      setTimeout(() => {
+        setPieces(current => {
+          const allPlaced = current.every(p => p.isPlaced)
+          if (allPlaced) {
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 }
+            })
+            setCompletedLevels(prev => new Set([...prev, currentLevel]))
+            setTimeout(() => setScreen('success'), 1000)
           }
-          setCompletedLevels(prev => new Set([...prev, currentLevel]))
-          smoothTransition(() => setGameState('completed'), 800)
-        }
-        
-        return current
-      })
-    }, 100)
-  }
-
-  const handleDropOnPiece = (e, targetPiece) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!draggedPiece || draggedPiece.id === targetPiece.id) return
-    
-    handlePieceSwap(draggedPiece, targetPiece)
-    setDraggedPiece(null)
-  }
-
-  const startPuzzle = () => {
-    if (!puzzleInitialized) {
-      initializePuzzle(currentLevel)
+          return current
+        })
+      }, 100)
     }
-  }
-
-  const resetPuzzle = () => {
-    initializePuzzle(currentLevel)
-    setShowHint(false)
-    setSelectedPiece(null)
+    
+    setDraggedPiece(null)
   }
 
   const nextLevel = () => {
     if (currentLevel < LEVELS.length - 1 && currentLevel < shuffledImages.length - 1) {
       const nextLvl = currentLevel + 1
       setCurrentLevel(nextLvl)
-      setPuzzleInitialized(false)
-      setGameState('playing')
-      setSelectedPiece(null)
-      setTimeout(() => initializePuzzle(nextLvl), 100)
+      initializePuzzle(nextLvl)
+      setScreen('game')
+    } else {
+      setScreen('upload')
+      setUploadedImages([])
+      setShuffledImages([])
     }
+  }
+
+  const resetPuzzle = () => {
+    initializePuzzle(currentLevel)
   }
 
   const newGame = () => {
     setUploadedImages([])
     setShuffledImages([])
-    setGameState('upload')
-    setPuzzleInitialized(false)
     setCompletedLevels(new Set())
+    setScreen('upload')
   }
 
-  if (gameState === 'upload') {
+  // ============ TELA UPLOAD ============
+  if (screen === 'upload') {
     return (
-      <div className={`upload-screen ${uploadedImages.length > 0 ? 'has-photos' : ''} ${userProfile.visualComplexity === 'simple' ? 'simple-mode' : ''} ${userProfile.animationSpeed === 'off' ? 'no-animations' : ''} ${isTransitioning ? 'transitioning' : ''}`}>
-        {/* Botão de atualização discreto */}
-        <button 
-          onClick={handleUpdate} 
-          className="update-app-button"
-          title="Atualizar aplicativo"
-        >
-          🔄
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 flex flex-col items-center justify-center p-4">
+        <canvas ref={canvasRef} className="hidden" />
         
-        {updateAvailable && (
-          <div className="update-banner">
-            <span>✨ Nova versão disponível!</span>
-            <button onClick={handleUpdate} className="update-button">
-              🔄 Atualizar Agora
-            </button>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-5xl font-extrabold text-[#2b8cee] mb-2 tracking-tight drop-shadow-sm">
+              🧩 Quebra-Cabeça Mágico
+            </h1>
+            <p className="text-lg text-gray-600 font-medium">
+              Carregue {MAX_IMAGES} fotos para começar!
+            </p>
           </div>
-        )}
-        
-        {/* Saudação personalizada */}
-        {userName && (
-          <div className="welcome-message">
-            <h2>Olá, {userName}! 👋</h2>
-            <p>Pronto para uma aventura mágica?</p>
-          </div>
-        )}
-        
-        {/* Título maior e mais chamativo - só mostra quando não há fotos carregadas */}
-        {uploadedImages.length === 0 && (
-          <div className="hero-section">
-            <div className="logo-container">
-              <div className="logo-icon">🧩</div>
-              <h1 className="main-title">Quebra-Cabeça<br/>Mágico</h1>
-              <div className="sparkle-effects">
-                <span className="sparkle">✨</span>
-                <span className="sparkle">⭐</span>
-                <span className="sparkle">✨</span>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Campo para nome do usuário */}
-        {!userName && (
-          <div className="name-input-section">
-            <div className="name-input-container">
-              <label htmlFor="userName" className="name-label">
-                <span className="name-icon">👤</span>
-                Qual é o seu nome?
-              </label>
-              <input
-                id="userName"
-                type="text"
-                placeholder="Digite seu nome..."
-                className="name-input"
-                maxLength={20}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    saveUserName(e.target.value.trim())
-                  }
-                }}
-              />
-              <button 
-                onClick={() => {
-                  const input = document.getElementById('userName')
-                  if (input.value.trim()) {
-                    saveUserName(input.value.trim())
-                  }
-                }}
-                className="name-confirm-button"
-              >
-                ✅ Confirmar
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Subtítulo - só mostra quando não há fotos carregadas */}
-        {uploadedImages.length === 0 && (
-          <p className="subtitle">
-            <span className="camera-icon">📸</span>
-            Carregue {MAX_IMAGES} fotos para começar a magia!
-          </p>
-        )}
-        
-        {/* Botão para álbuns salvos - só mostra quando não há fotos carregadas */}
-        {uploadedImages.length === 0 && savedAlbums.length > 0 && (
-          <button onClick={() => setGameState('albums')} className="albums-button">
-            <span className="album-icon">📚</span>
-            Meus Álbuns ({savedAlbums.length})
-          </button>
-        )}
-        
-        {/* Botão de configurações */}
-        {uploadedImages.length === 0 && (
-          <button onClick={() => setShowSettings(true)} className="settings-button">
-            <span className="settings-icon">⚙️</span>
-            Configurações
-          </button>
-        )}
-        
-        <div className="upload-container">
-          <div className="upload-area">
-            <input type="file" id="imageUpload" accept="image/*,.heic" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
-            <label htmlFor="imageUpload" className="upload-button">
-              <span className="upload-icon">📷</span>
-              Escolher Fotos
-              <span className="upload-counter">({uploadedImages.length}/{MAX_IMAGES})</span>
-            </label>
+
+          <div className="bg-white rounded-3xl shadow-2xl p-6 mb-4">
+            <input
+              type="file"
+              id="imageUpload"
+              accept="image/*,.heic"
+              multiple
+              onChange={handleImageUpload}
+              className="hidden"
+            />
             
+            <label
+              htmlFor="imageUpload"
+              className="flex items-center justify-center gap-3 w-full h-16 bg-[#2b8cee] text-white rounded-2xl cursor-pointer font-bold text-lg toy-shadow hover:bg-blue-500 active:scale-95 transition-all"
+            >
+              <span className="text-2xl">📸</span>
+              Escolher Fotos ({uploadedImages.length}/{MAX_IMAGES})
+            </label>
+
             {uploadedImages.length > 0 && (
-              <div className="image-grid">
+              <div className="grid grid-cols-3 gap-3 mt-4">
                 {uploadedImages.map((img, index) => (
-                  <div key={index} className="image-preview">
-                    <img src={img.src} alt={img.name} />
-                    <button onClick={() => removeImage(index)} className="remove-btn">❌</button>
+                  <div key={index} className="relative aspect-square">
+                    <img
+                      src={img.src}
+                      alt={img.name}
+                      className="w-full h-full object-cover rounded-xl shadow-md"
+                    />
+                    <button
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 active:scale-90 transition-all font-bold"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
             )}
-            
-            {uploadedImages.length === MAX_IMAGES && (
-              <div className="overlay-buttons">
-                <button onClick={() => setGameState('mode-selection')} className="start-game-button-overlay">
-                  <span className="play-icon">🎮</span>
-                  INICIAR JOGO
-                </button>
-                <button onClick={() => saveAlbum(`Álbum ${savedAlbums.length + 1}`)} className="save-album-button">
-                  <span className="save-icon">💾</span>
-                  Salvar Álbum
-                </button>
-                <button onClick={reviewPhotos} className="review-photos-button">
-                  <span className="review-icon">🔄</span>
-                  Revisar Fotos
-                </button>
-              </div>
-            )}
           </div>
-          
-          {uploadedImages.length === 0 && (
-            <p className="hint-text">
-              <span className="hint-icon">💡</span>
-              Clique no botão acima para escolher suas fotos favoritas!
+
+          {uploadedImages.length > 0 && uploadedImages.length < MAX_IMAGES && (
+            <p className="text-center text-gray-600 font-semibold">
+              📸 Faltam {MAX_IMAGES - uploadedImages.length} foto(s)!
             </p>
           )}
-          
-          {uploadedImages.length > 0 && uploadedImages.length < MAX_IMAGES && (
-            <p className="hint-text">
-              <span className="hint-icon">📸</span>
-              Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!
-            </p>
+
+          {uploadedImages.length === MAX_IMAGES && (
+            <button
+              onClick={startGame}
+              className="w-full h-20 bg-gradient-to-r from-green-400 to-green-500 text-white rounded-2xl font-black text-2xl uppercase tracking-wide toy-shadow hover:from-green-500 hover:to-green-600 active:scale-95 transition-all"
+            >
+              🎮 Iniciar Jogo
+            </button>
           )}
         </div>
       </div>
     )
   }
 
-  if (showSettings) {
+  // ============ TELA JOGO ============
+  if (screen === 'game') {
+    const level = LEVELS[currentLevel]
+    
     return (
-      <div className="settings-screen">
-        <div className="settings-header">
-          <h1 className="settings-title">⚙️ Configurações</h1>
-          <button onClick={() => setShowSettings(false)} className="close-settings-button">❌</button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 flex flex-col">
+        <canvas ref={canvasRef} className="hidden" />
         
-        <div className="settings-content">
-          <div className="setting-group">
-            <h3 className="setting-group-title">🎨 Aparência Visual</h3>
+        {/* Header */}
+        <header className="bg-white shadow-md p-4">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <button
+              onClick={newGame}
+              className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 active:scale-90 transition-all"
+            >
+              <span className="text-2xl">🏠</span>
+            </button>
             
-            <div className="setting-item">
-              <label className="setting-label">Complexidade Visual:</label>
-              <select 
-                value={userProfile.visualComplexity} 
-                onChange={(e) => saveUserProfile({...userProfile, visualComplexity: e.target.value})}
-                className="setting-select"
-              >
-                <option value="simple">Simples (menos elementos)</option>
-                <option value="normal">Normal</option>
-                <option value="rich">Rica (mais elementos)</option>
-              </select>
-            </div>
+            <h2 className="text-2xl font-bold text-gray-800">
+              Nível {level.level}
+            </h2>
             
-            <div className="setting-item">
-              <label className="setting-label">Velocidade das Animações:</label>
-              <select 
-                value={userProfile.animationSpeed} 
-                onChange={(e) => saveUserProfile({...userProfile, animationSpeed: e.target.value})}
-                className="setting-select"
+            <div className="flex gap-2">
+              <button
+                onClick={resetPuzzle}
+                className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 active:scale-90 transition-all"
               >
-                <option value="slow">Lenta</option>
-                <option value="normal">Normal</option>
-                <option value="fast">Rápida</option>
-                <option value="off">Desligadas</option>
-              </select>
+                <span className="text-2xl">🔄</span>
+              </button>
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 active:scale-90 transition-all"
+              >
+                <span className="text-2xl">{soundEnabled ? '🔊' : '🔇'}</span>
+              </button>
             </div>
           </div>
-          
-          <div className="setting-group">
-            <h3 className="setting-group-title">🔊 Áudio</h3>
-            
-            <div className="setting-item">
-              <label className="setting-label">Volume dos Sons:</label>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.1" 
-                value={userProfile.soundVolume} 
-                onChange={(e) => saveUserProfile({...userProfile, soundVolume: parseFloat(e.target.value)})}
-                className="setting-slider"
-              />
-              <span className="setting-value">{Math.round(userProfile.soundVolume * 100)}%</span>
-            </div>
-          </div>
-          
-          <div className="setting-group">
-            <h3 className="setting-group-title">🎯 Interação</h3>
-            
-            <div className="setting-item">
-              <label className="setting-label">Modo de Interação:</label>
-              <select 
-                value={userProfile.interactionMode} 
-                onChange={(e) => saveUserProfile({...userProfile, interactionMode: e.target.value})}
-                className="setting-select"
+        </header>
+
+        {/* Grid do Puzzle */}
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div
+            className="grid gap-2 bg-white/50 backdrop-blur-sm p-4 rounded-3xl shadow-2xl"
+            style={{
+              gridTemplateColumns: `repeat(${level.cols}, minmax(0, 1fr))`,
+              gridTemplateRows: `repeat(${level.rows}, minmax(0, 1fr))`,
+              width: 'min(90vw, 600px)',
+              aspectRatio: '4/3'
+            }}
+          >
+            {pieces.map((piece) => (
+              <div
+                key={piece.id}
+                className={`puzzle-slot rounded-xl border-4 ${
+                  piece.isEmpty ? 'border-dashed border-gray-300 bg-white/50' : 'border-transparent'
+                }`}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(piece.correctRow, piece.correctCol)}
               >
-                <option value="drag">Arrastar e Soltar</option>
-                <option value="click">Clicar para Selecionar</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="setting-group">
-            <h3 className="setting-group-title">🎉 Recompensas</h3>
-            
-            <div className="setting-item">
-              <label className="setting-label">Tipo de Recompensa:</label>
-              <select 
-                value={userProfile.rewardType} 
-                onChange={(e) => saveUserProfile({...userProfile, rewardType: e.target.value})}
-                className="setting-select"
-              >
-                <option value="confetti">Confete</option>
-                <option value="stars">Estrelas</option>
-                <option value="gentle">Suave (apenas som)</option>
-                <option value="off">Nenhuma</option>
-              </select>
-            </div>
-            
-            {userProfile.rewardType === 'confetti' && (
-              <div className="setting-item">
-                <label className="setting-label">Intensidade do Confete:</label>
-                <select 
-                  value={userProfile.confettiIntensity} 
-                  onChange={(e) => saveUserProfile({...userProfile, confettiIntensity: e.target.value})}
-                  className="setting-select"
-                >
-                  <option value="gentle">Suave</option>
-                  <option value="medium">Médio</option>
-                  <option value="celebration">Celebração</option>
-                </select>
+                {!piece.isEmpty && (
+                  <div className="relative w-full h-full">
+                    <img
+                      src={piece.image}
+                      alt={`Peça ${piece.id}`}
+                      className="w-full h-full object-cover rounded-lg"
+                      draggable={false}
+                    />
+                    {piece.isPlaced && (
+                      <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                        <span className="text-white text-xs font-bold">✓</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
-          
-          <div className="setting-group">
-            <h3 className="setting-group-title">🎨 Cores Preferidas</h3>
-            <p className="setting-description">Escolha até 2 cores para personalizar as recompensas:</p>
-            
-            <div className="color-picker">
-              {userProfile.preferredColors.map((color, index) => (
-                <div key={index} className="color-input-group">
-                  <label className="color-label">Cor {index + 1}:</label>
-                  <input 
-                    type="color" 
-                    value={color} 
-                    onChange={(e) => {
-                      const newColors = [...userProfile.preferredColors]
-                      newColors[index] = e.target.value
-                      saveUserProfile({...userProfile, preferredColors: newColors})
-                    }}
-                    className="color-input"
+        </main>
+
+        {/* Bandeja de Peças */}
+        <footer className="bg-white shadow-lg p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider">
+                Peças disponíveis
+              </h3>
+              <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold">
+                {availablePieces.length} restantes
+              </span>
+            </div>
+            <div className="piece-tray flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+              {availablePieces.map((piece) => (
+                <div
+                  key={piece.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, piece)}
+                  onDragEnd={handleDragEnd}
+                  className={`puzzle-piece snap-center shrink-0 w-24 h-24 bg-white rounded-xl shadow-md border-2 border-gray-100 p-1 ${
+                    draggedPiece?.id === piece.id ? 'dragging' : ''
+                  }`}
+                >
+                  <img
+                    src={piece.image}
+                    alt={`Peça ${piece.id}`}
+                    className="w-full h-full object-cover rounded-lg"
+                    draggable={false}
                   />
                 </div>
               ))}
             </div>
           </div>
-        </div>
-        
-        <div className="settings-footer">
-          <button onClick={() => setShowSettings(false)} className="action-button primary">
-            ✅ Salvar e Voltar
-          </button>
-        </div>
+        </footer>
       </div>
     )
   }
 
-  if (gameState === 'albums') {
+  // ============ TELA SUCESSO ============
+  if (screen === 'success') {
     return (
-      <div className="upload-screen">
-        {/* Botão de atualização discreto */}
-        <button 
-          onClick={handleUpdate} 
-          className="update-app-button"
-          title="Atualizar aplicativo"
-        >
-          🔄
-        </button>
-        
-        {updateAvailable && (
-          <div className="update-banner">
-            <span>✨ Nova versão disponível!</span>
-            <button onClick={handleUpdate} className="update-button">
-              🔄 Atualizar Agora
-            </button>
-          </div>
-        )}
-        
-        {/* Saudação personalizada */}
-        {userName && (
-          <div className="welcome-message">
-            <h2>Olá, {userName}! 👋</h2>
-            <p>Escolha um álbum salvo!</p>
-          </div>
-        )}
-        
-        {/* Título dos álbuns */}
-        <div className="albums-title-section">
-          <div className="albums-title-container">
-            <div className="albums-icon">📚</div>
-            <h2 className="albums-title">Meus Álbuns</h2>
-          </div>
-        </div>
-        
-        {/* Lista de álbuns salvos */}
-        <div className="upload-container">
-          <div className="upload-area">
-            {savedAlbums.length === 0 ? (
-              <div className="no-albums">
-                <div className="no-albums-icon">📭</div>
-                <h3>Nenhum álbum salvo</h3>
-                <p>Salve seus álbuns favoritos para jogar rapidamente!</p>
-              </div>
-            ) : (
-              <div className="albums-grid">
-                {savedAlbums.map((album) => (
-                  <div key={album.id} className="album-card">
-                    <div className="album-preview">
-                      <div className="album-thumbnails">
-                        {album.images.slice(0, 4).map((img, index) => (
-                          <img key={index} src={img.src} alt={`Foto ${index + 1}`} />
-                        ))}
-                        {album.images.length > 4 && (
-                          <div className="more-photos">+{album.images.length - 4}</div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="album-info">
-                      <h4>{album.name}</h4>
-                      <p>{new Date(album.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    <div className="album-actions">
-                      <button onClick={() => loadAlbum(album)} className="load-album-button">
-                        <span className="load-icon">🎮</span>
-                        Jogar
-                      </button>
-                      <button onClick={() => deleteAlbum(album.id)} className="delete-album-button">
-                        <span className="delete-icon">🗑️</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <button onClick={() => setGameState('upload')} className="back-button">
-              <span className="back-icon">⬅️</span>
-              Voltar
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        {/* Confetes decorativos */}
+        <div className="confetti bg-red-400 rotate-12 top-10 left-4 rounded-sm"></div>
+        <div className="confetti bg-blue-400 -rotate-45 top-20 left-12 w-3 h-3 rounded-full"></div>
+        <div className="confetti bg-yellow-400 rotate-45 top-8 left-24 w-4 h-2"></div>
+        <div className="confetti bg-green-400 -rotate-12 top-12 right-6 rounded-sm"></div>
+        <div className="confetti bg-purple-400 rotate-45 top-24 right-16 w-3 h-3 rounded-full"></div>
+        <div className="confetti bg-pink-400 -rotate-90 top-6 right-32 w-4 h-2"></div>
 
-  if (gameState === 'mode-selection') {
-    return (
-      <div className="upload-screen has-photos">
-        {/* Botão de atualização discreto */}
-        <button 
-          onClick={handleUpdate} 
-          className="update-app-button"
-          title="Atualizar aplicativo"
-        >
-          🔄
-        </button>
-        
-        {updateAvailable && (
-          <div className="update-banner">
-            <span>✨ Nova versão disponível!</span>
-            <button onClick={handleUpdate} className="update-button">
-              🔄 Atualizar Agora
-            </button>
+        <div className="w-full max-w-md relative z-10">
+          <div className="text-center mb-8">
+            <h1 className="text-6xl font-extrabold text-[#2b8cee] mb-2 drop-shadow-sm">
+              🎉 Parabéns! 🎉
+            </h1>
+            <p className="text-2xl font-bold text-gray-700">
+              Você conseguiu!
+            </p>
           </div>
-        )}
-        
-        {/* Saudação personalizada */}
-        {userName && (
-          <div className="welcome-message">
-            <h2>Olá, {userName}! 👋</h2>
-            <p>Escolha como quer jogar!</p>
-          </div>
-        )}
-        
-        {/* Título da seleção de modo - menor */}
-        <div className="mode-title-section">
-          <div className="mode-title-container">
-            <div className="mode-icon-small">🎯</div>
-            <h2 className="mode-title">Escolha o Modo</h2>
-          </div>
-        </div>
-        
-        {/* Opções de modo de jogo */}
-        <div className="upload-container">
-          <div className="upload-area">
-            <div className="mode-selection-grid">
-              <div className="mode-option">
-                <button onClick={() => startGame('drag')} className="mode-button drag-mode">
-                  <div className="mode-icon">👆</div>
-                  <h3>Modo Arrastar</h3>
-                  <p>Arraste as peças para seus lugares</p>
-                  <div className="mode-features">
-                    <span>🖱️ Arrastar e soltar</span>
-                    <span>🎯 Mais intuitivo</span>
-                    <span>⚡ Rápido</span>
-                  </div>
-                </button>
-              </div>
-              
-              <div className="mode-option">
-                <button onClick={() => startGame('click')} className="mode-button click-mode">
-                  <div className="mode-icon">🖱️</div>
-                  <h3>Modo Clicar</h3>
-                  <p>Clique na peça e depois no destino</p>
-                  <div className="mode-features">
-                    <span>👆 Dois cliques</span>
-                    <span>🎯 Mais preciso</span>
-                    <span>🧠 Estratégico</span>
-                  </div>
-                </button>
+
+          <div className="flex justify-center mb-8">
+            <div className="relative w-80 aspect-[4/3] bg-white p-3 rounded-3xl shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-300">
+              <div className="absolute inset-0 border-4 border-yellow-400/30 rounded-3xl pointer-events-none"></div>
+              <img
+                src={shuffledImages[currentLevel].src}
+                alt="Puzzle completo"
+                className="w-full h-full object-cover rounded-2xl"
+              />
+              <div className="absolute bottom-3 right-3 w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-white text-3xl">✓</span>
               </div>
             </div>
-            
-            <button onClick={() => setGameState('upload')} className="back-button">
-              <span className="back-icon">⬅️</span>
-              Voltar
-            </button>
           </div>
-        </div>
-      </div>
-    )
-  }
 
-  if (gameState === 'completed') {
-    const allCompleted = completedLevels.size === Math.min(shuffledImages.length, LEVELS.length)
-    
-    return (
-      <div className={`completion-screen ${userProfile.visualComplexity === 'simple' ? 'simple-mode' : ''} ${userProfile.animationSpeed === 'off' ? 'no-animations' : ''} ${isTransitioning ? 'transitioning' : ''}`}>
-        <div className="header-zone">
-          <h1 className="celebration-title">🎉 PARABÉNS! 🎉</h1>
-          <p className="celebration-text">Você completou o Nível {currentLevel + 1}!</p>
-        </div>
-        <div className="content-zone">
-          <div className="completed-image">
-            <img src={shuffledImages[currentLevel].src} alt="Completo" />
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="bg-white/50 backdrop-blur-sm px-8 py-4 rounded-full shadow-md flex gap-4">
+              <span className="text-5xl">⭐</span>
+              <span className="text-6xl">⭐</span>
+              <span className="text-5xl">⭐</span>
+            </div>
           </div>
-        </div>
-        <div className="action-zone">
-          <div className="completion-buttons">
-            {!allCompleted && currentLevel < shuffledImages.length - 1 && (
-              <button onClick={nextLevel} className="action-button big primary next-level-only">
-                ➡️ Próximo Nível
+
+          <div className="space-y-4">
+            {currentLevel < LEVELS.length - 1 && currentLevel < shuffledImages.length - 1 && (
+              <button
+                onClick={nextLevel}
+                className="w-full h-16 bg-[#2b8cee] text-white rounded-2xl font-bold text-xl uppercase tracking-wide toy-shadow hover:bg-blue-500 active:scale-95 transition-all flex items-center justify-center gap-3"
+              >
+                <span className="text-2xl">▶️</span>
+                Próxima Fase
               </button>
             )}
-            {allCompleted && (
-              <div className="victory-section">
-                <p className="victory-text">🏆 VOCÊ É UM CAMPEÃO! 🏆</p>
-                <button onClick={newGame} className="action-button big primary">
-                  🏠 Novo Jogo
-                </button>
-              </div>
-            )}
+
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={newGame}
+                className="flex flex-col items-center gap-2"
+              >
+                <div className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all">
+                  <span className="text-3xl">🏠</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-600">Menu</span>
+              </button>
+
+              <button
+                onClick={resetPuzzle}
+                className="flex flex-col items-center gap-2"
+              >
+                <div className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 active:scale-90 transition-all">
+                  <span className="text-3xl">🔄</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-600">Repetir</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     )
   }
 
-  const level = LEVELS[currentLevel]
-  
-  return (
-    <div className={`game-screen ${userProfile.visualComplexity === 'simple' ? 'simple-mode' : ''} ${userProfile.animationSpeed === 'off' ? 'no-animations' : ''} ${isTransitioning ? 'transitioning' : ''}`}>
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      
-      <div className="game-header">
-        <button 
-          onClick={() => setShowHint(!showHint)} 
-          className="header-button big hint-btn"
-        >
-          💡 {showHint ? 'Esconder' : 'Ver'} Dica
-        </button>
-        <h2 className="level-title">Nível {level.level}</h2>
-        <div className="header-controls">
-          <button 
-            onClick={() => setInteractionMode(interactionMode === 'drag' ? 'click' : 'drag')} 
-            className="header-button big icon-btn"
-            title={`Modo ${interactionMode === 'drag' ? 'Arrastar' : 'Clicar'}`}
-          >
-            {interactionMode === 'drag' ? '👆' : '🖱️'}
-          </button>
-          <button onClick={resetPuzzle} className="header-button big icon-btn" title="Reiniciar">
-            🔄
-          </button>
-          <button onClick={() => setSoundEnabled(!soundEnabled)} className="header-button big icon-btn">
-            {soundEnabled ? '🔊' : '🔇'}
-          </button>
-        </div>
-      </div>
-
-      <div className="puzzle-area">
-        {showHint && (
-          <div className="hint-overlay" onClick={() => setShowHint(false)}>
-            <img src={shuffledImages[currentLevel].src} alt="Dica" />
-            <p className="hint-instruction">👆 Toque para esconder</p>
-          </div>
-        )}
-        
-        {!puzzleInitialized && (
-          <div className="start-overlay">
-            <button onClick={startPuzzle} className="start-puzzle-button">
-              🎮 INICIAR
-            </button>
-          </div>
-        )}
-        
-        <div className="puzzle-grid" style={{ gridTemplateColumns: `repeat(${level.cols}, 1fr)`, gridTemplateRows: `repeat(${level.rows}, 1fr)` }}>
-          {pieces.map((piece) => (
-            <div
-              key={piece.id}
-              data-piece-id={piece.id}
-              className={`puzzle-piece ${piece.isPlaced ? 'correct' : ''} ${draggedPiece?.id === piece.id ? 'dragging' : ''} ${selectedPiece?.id === piece.id ? 'selected' : ''}`}
-              draggable={interactionMode === 'drag' && !piece.isPlaced && puzzleInitialized}
-              onClick={() => handlePieceClick(piece)}
-              onDragStart={(e) => handleDragStart(e, piece)}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleDropOnPiece(e, piece)}
-              onTouchStart={(e) => handleTouchStart(e, piece)}
-              onTouchEnd={(e) => handleTouchEnd(e, piece)}
-              style={{
-                gridRow: piece.currentRow + 1,
-                gridColumn: piece.currentCol + 1
-              }}
-            >
-              <img src={piece.image} alt={`Peça ${piece.id}`} draggable={false} />
-              {piece.isPlaced && <div className="check-mark">✓</div>}
-              {selectedPiece?.id === piece.id && !piece.isPlaced && (
-                <div className="selection-indicator">🎯</div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="game-footer">
-        <button onClick={newGame} className="game-button big new-game">
-          🏠 Novo Jogo
-        </button>
-      </div>
-    </div>
-  )
+  return null
 }
-
-export default App
