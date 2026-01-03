@@ -27,6 +27,8 @@ function App() {
   const [completedLevels, setCompletedLevels] = useState(new Set())
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [puzzleInitialized, setPuzzleInitialized] = useState(false)
+  const [interactionMode, setInteractionMode] = useState('drag') // 'drag' or 'click'
+  const [selectedPiece, setSelectedPiece] = useState(null)
   
   const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
   const canvasRef = useRef(null)
@@ -251,11 +253,17 @@ function App() {
     setDraggedPiece(piece)
     playSound('select')
     e.dataTransfer.effectAllowed = 'move'
-    setTimeout(() => { e.target.style.opacity = '0.4' }, 0)
+    // Melhorar feedback visual para drag
+    e.dataTransfer.setData('text/plain', piece.id)
+    setTimeout(() => { 
+      e.target.style.opacity = '0.6'
+      e.target.style.transform = 'scale(1.1) rotate(5deg)'
+    }, 0)
   }
 
   const handleDragEnd = (e) => {
     e.target.style.opacity = '1'
+    e.target.style.transform = 'scale(1) rotate(0deg)'
     setDraggedPiece(null)
   }
 
@@ -264,11 +272,58 @@ function App() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDropOnPiece = (e, targetPiece) => {
+  // Novo: Suporte a touch events para melhor aderência
+  const handleTouchStart = (e, piece) => {
+    if (piece.isPlaced || interactionMode === 'click') return
     e.preventDefault()
-    e.stopPropagation()
-    if (!draggedPiece || draggedPiece.id === targetPiece.id) return
+    setDraggedPiece(piece)
+    playSound('select')
+    e.target.style.opacity = '0.6'
+    e.target.style.transform = 'scale(1.1) rotate(5deg)'
+  }
+
+  const handleTouchEnd = (e, piece) => {
+    if (interactionMode === 'click') return
+    e.preventDefault()
+    e.target.style.opacity = '1'
+    e.target.style.transform = 'scale(1) rotate(0deg)'
     
+    // Detectar se foi solto sobre outra peça
+    const touch = e.changedTouches[0]
+    const elementAtPoint = document.elementFromPoint(touch.clientX, touch.clientY)
+    if (elementAtPoint && elementAtPoint.closest('.puzzle-piece')) {
+      const targetPieceId = elementAtPoint.closest('.puzzle-piece').getAttribute('data-piece-id')
+      const targetPiece = pieces.find(p => p.id.toString() === targetPieceId)
+      if (targetPiece && targetPiece.id !== piece.id) {
+        handlePieceSwap(piece, targetPiece)
+      }
+    }
+    
+    setDraggedPiece(null)
+  }
+
+  // Novo: Modo click-to-move
+  const handlePieceClick = (piece) => {
+    if (!puzzleInitialized || piece.isPlaced) return
+    
+    if (interactionMode === 'click') {
+      if (selectedPiece === null) {
+        // Selecionar peça
+        setSelectedPiece(piece)
+        playSound('select')
+      } else if (selectedPiece.id === piece.id) {
+        // Desselecionar
+        setSelectedPiece(null)
+      } else {
+        // Trocar peças
+        handlePieceSwap(selectedPiece, piece)
+        setSelectedPiece(null)
+      }
+    }
+  }
+
+  // Função auxiliar para trocar peças
+  const handlePieceSwap = (draggedPiece, targetPiece) => {
     playSound('drop')
     
     setPieces(prev => prev.map(p => {
@@ -307,7 +362,14 @@ function App() {
         return current
       })
     }, 100)
+  }
+
+  const handleDropOnPiece = (e, targetPiece) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!draggedPiece || draggedPiece.id === targetPiece.id) return
     
+    handlePieceSwap(draggedPiece, targetPiece)
     setDraggedPiece(null)
   }
 
@@ -320,6 +382,7 @@ function App() {
   const resetPuzzle = () => {
     initializePuzzle(currentLevel)
     setShowHint(false)
+    setSelectedPiece(null)
   }
 
   const nextLevel = () => {
@@ -328,6 +391,7 @@ function App() {
       setCurrentLevel(nextLvl)
       setPuzzleInitialized(false)
       setGameState('playing')
+      setSelectedPiece(null)
       setTimeout(() => initializePuzzle(nextLvl), 100)
     }
   }
@@ -440,6 +504,13 @@ function App() {
         </button>
         <h2 className="level-title">Nível {level.level}</h2>
         <div className="header-controls">
+          <button 
+            onClick={() => setInteractionMode(interactionMode === 'drag' ? 'click' : 'drag')} 
+            className="header-button big icon-btn"
+            title={`Modo ${interactionMode === 'drag' ? 'Arrastar' : 'Clicar'}`}
+          >
+            {interactionMode === 'drag' ? '👆' : '🖱️'}
+          </button>
           <button onClick={resetPuzzle} className="header-button big icon-btn" title="Reiniciar">
             🔄
           </button>
@@ -469,12 +540,16 @@ function App() {
           {pieces.map((piece) => (
             <div
               key={piece.id}
-              className={`puzzle-piece ${piece.isPlaced ? 'correct' : ''} ${draggedPiece?.id === piece.id ? 'dragging' : ''}`}
-              draggable={!piece.isPlaced && puzzleInitialized}
+              data-piece-id={piece.id}
+              className={`puzzle-piece ${piece.isPlaced ? 'correct' : ''} ${draggedPiece?.id === piece.id ? 'dragging' : ''} ${selectedPiece?.id === piece.id ? 'selected' : ''}`}
+              draggable={interactionMode === 'drag' && !piece.isPlaced && puzzleInitialized}
+              onClick={() => handlePieceClick(piece)}
               onDragStart={(e) => handleDragStart(e, piece)}
               onDragEnd={handleDragEnd}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDropOnPiece(e, piece)}
+              onTouchStart={(e) => handleTouchStart(e, piece)}
+              onTouchEnd={(e) => handleTouchEnd(e, piece)}
               style={{
                 gridRow: piece.currentRow + 1,
                 gridColumn: piece.currentCol + 1
@@ -482,6 +557,9 @@ function App() {
             >
               <img src={piece.image} alt={`Peça ${piece.id}`} draggable={false} />
               {piece.isPlaced && <div className="check-mark">✓</div>}
+              {selectedPiece?.id === piece.id && !piece.isPlaced && (
+                <div className="selection-indicator">🎯</div>
+              )}
             </div>
           ))}
         </div>
