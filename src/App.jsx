@@ -27,21 +27,55 @@ function App() {
   const [completedLevels, setCompletedLevels] = useState(new Set())
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [puzzleInitialized, setPuzzleInitialized] = useState(false)
-  const [interactionMode, setInteractionMode] = useState('drag') // 'drag' or 'click'
-  const [selectedPiece, setSelectedPiece] = useState(null)
+  const [interactionMode, setInteractionMode] = useState(userProfile.interactionMode)
+  const [showSettings, setShowSettings] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   const [userName, setUserName] = useState(localStorage.getItem('userName') || '')
-  const [savedAlbums, setSavedAlbums] = useState(() => {
+  const [userProfile, setUserProfile] = useState(() => {
     try {
-      const saved = localStorage.getItem('savedAlbums')
-      return saved ? JSON.parse(saved) : []
+      const saved = localStorage.getItem('userProfile')
+      return saved ? JSON.parse(saved) : {
+        preferredColors: ['#4A90E2', '#F5A623'],
+        soundVolume: 0.7,
+        animationSpeed: 'normal',
+        interactionMode: 'drag',
+        visualComplexity: 'normal',
+        rewardType: 'confetti',
+        confettiIntensity: 'medium'
+      }
     } catch {
-      return []
+      return {
+        preferredColors: ['#4A90E2', '#F5A623'],
+        soundVolume: 0.7,
+        animationSpeed: 'normal',
+        interactionMode: 'drag',
+        visualComplexity: 'normal',
+        rewardType: 'confetti',
+        confettiIntensity: 'medium'
+      }
     }
   })
   
   const saveUserName = (name) => {
     setUserName(name)
     localStorage.setItem('userName', name)
+  }
+  
+  const saveUserProfile = (profile) => {
+    setUserProfile(profile)
+    localStorage.setItem('userProfile', JSON.stringify(profile))
+  }
+  
+  const smoothTransition = (callback, delay = 300) => {
+    if (userProfile.animationSpeed !== 'off') {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        callback()
+        setTimeout(() => setIsTransitioning(false), 100)
+      }, delay)
+    } else {
+      callback()
+    }
   }
   
   const saveAlbum = (name) => {
@@ -143,7 +177,7 @@ function App() {
     audioRef.current.complete = createMelody()
   }, [])
 
-  function createBeep(frequency, duration, type = 'sine') {
+  function createBeep(frequency, duration, type = 'sine', volume = userProfile.soundVolume) {
     return () => {
       if (!soundEnabled) return
       try {
@@ -156,7 +190,7 @@ function App() {
         
         oscillator.frequency.value = frequency
         oscillator.type = type
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+        gainNode.gain.setValueAtTime(volume * 0.3, audioContext.currentTime)
         gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration)
         
         oscillator.start(audioContext.currentTime)
@@ -181,19 +215,85 @@ function App() {
     if (audioRef.current[soundType]) audioRef.current[soundType]()
   }
 
-  const triggerConfetti = () => {
-    const duration = 3000
+  const triggerConfetti = (intensity = userProfile.confettiIntensity) => {
+    let duration, particleCount, intervalTime
+    
+    switch (intensity) {
+      case 'gentle':
+        duration = 2000
+        particleCount = 25
+        intervalTime = 400
+        break
+      case 'medium':
+        duration = 3000
+        particleCount = 50
+        intervalTime = 250
+        break
+      case 'celebration':
+        duration = 4000
+        particleCount = 75
+        intervalTime = 200
+        break
+      default:
+        duration = 3000
+        particleCount = 50
+        intervalTime = 250
+    }
+    
     const animationEnd = Date.now() + duration
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 }
+    const defaults = { 
+      startVelocity: 30, 
+      spread: 360, 
+      ticks: 60, 
+      zIndex: 10000,
+      colors: userProfile.preferredColors
+    }
 
     const interval = setInterval(() => {
       const timeLeft = animationEnd - Date.now()
       if (timeLeft <= 0) return clearInterval(interval)
 
-      const particleCount = 50 * (timeLeft / duration)
-      confetti({ ...defaults, particleCount, origin: { x: Math.random() * 0.4 + 0.1, y: Math.random() - 0.2 } })
-      confetti({ ...defaults, particleCount, origin: { x: Math.random() * 0.4 + 0.6, y: Math.random() - 0.2 } })
-    }, 250)
+      const currentParticleCount = particleCount * (timeLeft / duration)
+      confetti({ ...defaults, particleCount: currentParticleCount, origin: { x: Math.random() * 0.4 + 0.1, y: Math.random() - 0.2 } })
+      confetti({ ...defaults, particleCount: currentParticleCount, origin: { x: Math.random() * 0.4 + 0.6, y: Math.random() - 0.2 } })
+    }, intervalTime)
+  }
+
+  const showStars = () => {
+    // Criar estrelas animadas na tela
+    const starsContainer = document.createElement('div')
+    starsContainer.className = 'stars-celebration'
+    starsContainer.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10000;
+    `
+    
+    for (let i = 0; i < 8; i++) {
+      const star = document.createElement('div')
+      star.innerHTML = '⭐'
+      star.style.cssText = `
+        position: absolute;
+        font-size: 48px;
+        left: ${Math.random() * 80 + 10}%;
+        top: ${Math.random() * 80 + 10}%;
+        animation: starFloat 2s ease-out forwards;
+        animation-delay: ${i * 0.2}s;
+      `
+      starsContainer.appendChild(star)
+    }
+    
+    document.body.appendChild(starsContainer)
+    
+    setTimeout(() => {
+      if (starsContainer.parentNode) {
+        starsContainer.parentNode.removeChild(starsContainer)
+      }
+    }, 3000)
   }
 
   const handleImageUpload = async (e) => {
@@ -480,9 +580,13 @@ function App() {
         const allCorrect = current.every(p => p.isPlaced)
         if (allCorrect) {
           playSound('complete')
-          triggerConfetti()
+          if (userProfile.rewardType === 'confetti') {
+            triggerConfetti()
+          } else if (userProfile.rewardType === 'stars') {
+            showStars()
+          }
           setCompletedLevels(prev => new Set([...prev, currentLevel]))
-          setTimeout(() => setGameState('completed'), 500)
+          smoothTransition(() => setGameState('completed'), 800)
         }
         
         return current
@@ -532,7 +636,7 @@ function App() {
 
   if (gameState === 'upload') {
     return (
-      <div className={`upload-screen ${uploadedImages.length > 0 ? 'has-photos' : ''}`}>
+      <div className={`upload-screen ${uploadedImages.length > 0 ? 'has-photos' : ''} ${userProfile.visualComplexity === 'simple' ? 'simple-mode' : ''} ${userProfile.animationSpeed === 'off' ? 'no-animations' : ''} ${isTransitioning ? 'transitioning' : ''}`}>
         {/* Botão de atualização discreto */}
         <button 
           onClick={handleUpdate} 
@@ -625,6 +729,14 @@ function App() {
           </button>
         )}
         
+        {/* Botão de configurações */}
+        {uploadedImages.length === 0 && (
+          <button onClick={() => setShowSettings(true)} className="settings-button">
+            <span className="settings-icon">⚙️</span>
+            Configurações
+          </button>
+        )}
+        
         <div className="upload-container">
           <div className="upload-area">
             <input type="file" id="imageUpload" accept="image/*,.heic" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
@@ -676,6 +788,146 @@ function App() {
               Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!
             </p>
           )}
+        </div>
+      </div>
+    )
+  }
+
+  if (showSettings) {
+    return (
+      <div className="settings-screen">
+        <div className="settings-header">
+          <h1 className="settings-title">⚙️ Configurações</h1>
+          <button onClick={() => setShowSettings(false)} className="close-settings-button">❌</button>
+        </div>
+        
+        <div className="settings-content">
+          <div className="setting-group">
+            <h3 className="setting-group-title">🎨 Aparência Visual</h3>
+            
+            <div className="setting-item">
+              <label className="setting-label">Complexidade Visual:</label>
+              <select 
+                value={userProfile.visualComplexity} 
+                onChange={(e) => saveUserProfile({...userProfile, visualComplexity: e.target.value})}
+                className="setting-select"
+              >
+                <option value="simple">Simples (menos elementos)</option>
+                <option value="normal">Normal</option>
+                <option value="rich">Rica (mais elementos)</option>
+              </select>
+            </div>
+            
+            <div className="setting-item">
+              <label className="setting-label">Velocidade das Animações:</label>
+              <select 
+                value={userProfile.animationSpeed} 
+                onChange={(e) => saveUserProfile({...userProfile, animationSpeed: e.target.value})}
+                className="setting-select"
+              >
+                <option value="slow">Lenta</option>
+                <option value="normal">Normal</option>
+                <option value="fast">Rápida</option>
+                <option value="off">Desligadas</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="setting-group">
+            <h3 className="setting-group-title">🔊 Áudio</h3>
+            
+            <div className="setting-item">
+              <label className="setting-label">Volume dos Sons:</label>
+              <input 
+                type="range" 
+                min="0" 
+                max="1" 
+                step="0.1" 
+                value={userProfile.soundVolume} 
+                onChange={(e) => saveUserProfile({...userProfile, soundVolume: parseFloat(e.target.value)})}
+                className="setting-slider"
+              />
+              <span className="setting-value">{Math.round(userProfile.soundVolume * 100)}%</span>
+            </div>
+          </div>
+          
+          <div className="setting-group">
+            <h3 className="setting-group-title">🎯 Interação</h3>
+            
+            <div className="setting-item">
+              <label className="setting-label">Modo de Interação:</label>
+              <select 
+                value={userProfile.interactionMode} 
+                onChange={(e) => saveUserProfile({...userProfile, interactionMode: e.target.value})}
+                className="setting-select"
+              >
+                <option value="drag">Arrastar e Soltar</option>
+                <option value="click">Clicar para Selecionar</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="setting-group">
+            <h3 className="setting-group-title">🎉 Recompensas</h3>
+            
+            <div className="setting-item">
+              <label className="setting-label">Tipo de Recompensa:</label>
+              <select 
+                value={userProfile.rewardType} 
+                onChange={(e) => saveUserProfile({...userProfile, rewardType: e.target.value})}
+                className="setting-select"
+              >
+                <option value="confetti">Confete</option>
+                <option value="stars">Estrelas</option>
+                <option value="gentle">Suave (apenas som)</option>
+                <option value="off">Nenhuma</option>
+              </select>
+            </div>
+            
+            {userProfile.rewardType === 'confetti' && (
+              <div className="setting-item">
+                <label className="setting-label">Intensidade do Confete:</label>
+                <select 
+                  value={userProfile.confettiIntensity} 
+                  onChange={(e) => saveUserProfile({...userProfile, confettiIntensity: e.target.value})}
+                  className="setting-select"
+                >
+                  <option value="gentle">Suave</option>
+                  <option value="medium">Médio</option>
+                  <option value="celebration">Celebração</option>
+                </select>
+              </div>
+            )}
+          </div>
+          
+          <div className="setting-group">
+            <h3 className="setting-group-title">🎨 Cores Preferidas</h3>
+            <p className="setting-description">Escolha até 2 cores para personalizar as recompensas:</p>
+            
+            <div className="color-picker">
+              {userProfile.preferredColors.map((color, index) => (
+                <div key={index} className="color-input-group">
+                  <label className="color-label">Cor {index + 1}:</label>
+                  <input 
+                    type="color" 
+                    value={color} 
+                    onChange={(e) => {
+                      const newColors = [...userProfile.preferredColors]
+                      newColors[index] = e.target.value
+                      saveUserProfile({...userProfile, preferredColors: newColors})
+                    }}
+                    className="color-input"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <div className="settings-footer">
+          <button onClick={() => setShowSettings(false)} className="action-button primary">
+            ✅ Salvar e Voltar
+          </button>
         </div>
       </div>
     )
@@ -851,26 +1103,32 @@ function App() {
     const allCompleted = completedLevels.size === Math.min(shuffledImages.length, LEVELS.length)
     
     return (
-      <div className="completion-screen">
-        <h1 className="celebration-title">🎉 PARABÉNS! 🎉</h1>
-        <p className="celebration-text">Você completou o Nível {currentLevel + 1}!</p>
-        <div className="completed-image">
-          <img src={shuffledImages[currentLevel].src} alt="Completo" />
+      <div className={`completion-screen ${userProfile.visualComplexity === 'simple' ? 'simple-mode' : ''} ${userProfile.animationSpeed === 'off' ? 'no-animations' : ''} ${isTransitioning ? 'transitioning' : ''}`}>
+        <div className="header-zone">
+          <h1 className="celebration-title">🎉 PARABÉNS! 🎉</h1>
+          <p className="celebration-text">Você completou o Nível {currentLevel + 1}!</p>
         </div>
-        <div className="completion-buttons">
-          {!allCompleted && currentLevel < shuffledImages.length - 1 && (
-            <button onClick={nextLevel} className="action-button big primary next-level-only">
-              ➡️ Próximo Nível
-            </button>
-          )}
-          {allCompleted && (
-            <div className="victory-section">
-              <p className="victory-text">🏆 VOCÊ É UM CAMPEÃO! 🏆</p>
-              <button onClick={newGame} className="action-button big primary">
-                🏠 Novo Jogo
+        <div className="content-zone">
+          <div className="completed-image">
+            <img src={shuffledImages[currentLevel].src} alt="Completo" />
+          </div>
+        </div>
+        <div className="action-zone">
+          <div className="completion-buttons">
+            {!allCompleted && currentLevel < shuffledImages.length - 1 && (
+              <button onClick={nextLevel} className="action-button big primary next-level-only">
+                ➡️ Próximo Nível
               </button>
-            </div>
-          )}
+            )}
+            {allCompleted && (
+              <div className="victory-section">
+                <p className="victory-text">🏆 VOCÊ É UM CAMPEÃO! 🏆</p>
+                <button onClick={newGame} className="action-button big primary">
+                  🏠 Novo Jogo
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -879,7 +1137,7 @@ function App() {
   const level = LEVELS[currentLevel]
   
   return (
-    <div className="game-screen">
+    <div className={`game-screen ${userProfile.visualComplexity === 'simple' ? 'simple-mode' : ''} ${userProfile.animationSpeed === 'off' ? 'no-animations' : ''} ${isTransitioning ? 'transitioning' : ''}`}>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       <div className="game-header">
