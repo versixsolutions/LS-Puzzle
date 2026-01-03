@@ -29,8 +29,9 @@
 body {
   font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  overflow-x: hidden;
   user-select: none;
+  min-height: 100vh;
 }
 
 #root {
@@ -42,18 +43,18 @@ body {
 /* Botão de atualização discreto */
 .update-app-button {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: max(10px, 2vh);
+  right: max(10px, 2vw);
   background: rgba(255, 255, 255, 0.9);
   border: 2px solid var(--color-primary);
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  font-size: 20px;
+  width: clamp(40px, 8vw, 50px);
+  height: clamp(40px, 8vw, 50px);
+  font-size: clamp(16px, 4vw, 20px);
   cursor: pointer;
   box-shadow: var(--shadow-soft);
   transition: all var(--transition-fast);
-  z-index: 100;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -97,8 +98,8 @@ body {
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
-  padding: 20px;
-  padding-bottom: 40px;
+  padding: clamp(15px, 3vh, 20px) clamp(10px, 3vw, 20px);
+  padding-bottom: clamp(30px, 6vh, 40px);
   position: relative;
 }
 
@@ -126,7 +127,7 @@ body {
 
 /* Seção Hero com título maior */
 .hero-section {
-  margin: 30px 0 20px;
+  margin: clamp(20px, 5vh, 30px) 0 clamp(15px, 3vh, 20px);
   animation: fadeInUp 1s ease;
 }
 
@@ -145,14 +146,14 @@ body {
 }
 
 .main-title {
-  font-size: clamp(36px, 10vw, 72px);
+  font-size: clamp(28px, 8vw, 72px);
   color: var(--color-white);
   text-shadow: 4px 4px 8px var(--color-shadow);
   font-weight: 900;
   text-align: center;
   line-height: 1.1;
   margin: 0;
-  letter-spacing: 3px;
+  letter-spacing: clamp(1px, 2vw, 3px);
 }
 
 .sparkle-effects {
@@ -222,7 +223,7 @@ body {
 .upload-area {
   background: var(--color-white);
   border-radius: var(--border-radius);
-  padding: 30px;
+  padding: clamp(20px, 5vw, 30px);
   box-shadow: var(--shadow-large);
   width: 100%;
   position: relative;
@@ -251,11 +252,11 @@ body {
 
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 15px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(80px, 20vw, 120px), 1fr));
+  gap: clamp(10px, 2.5vw, 15px);
+  margin-top: clamp(15px, 3vh, 20px);
   width: 100%;
-  max-width: 400px;
+  max-width: min(400px, 90vw);
   margin-left: auto;
   margin-right: auto;
 }
@@ -268,7 +269,7 @@ body {
   box-shadow: var(--shadow-soft);
   transition: transform var(--transition-fast);
   width: 100%;
-  max-width: 120px;
+  max-width: clamp(80px, 20vw, 120px);
 }
 
 .image-preview:hover {
@@ -1104,43 +1105,44 @@ body {
 
 /* Seção de input do nome */
 .name-input-section {
-  margin: 20px 0;
+  margin: clamp(15px, 3vh, 20px) 0;
   animation: fadeInUp 0.6s ease 0.3s both;
+  padding: 0 clamp(10px, 3vw, 20px);
 }
 
 .name-input-container {
   background: rgba(255, 255, 255, 0.95);
   border-radius: var(--border-radius);
-  padding: 25px;
+  padding: clamp(20px, 5vw, 25px);
   box-shadow: var(--shadow-large);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
-  max-width: 400px;
+  gap: clamp(12px, 3vh, 15px);
+  max-width: min(400px, 90vw);
   width: 100%;
 }
 
 .name-label {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: clamp(18px, 5vw, 24px);
+  gap: clamp(8px, 2vw, 10px);
+  font-size: clamp(16px, 4vw, 24px);
   font-weight: 700;
   color: var(--color-dark);
   text-align: center;
 }
 
 .name-icon {
-  font-size: 28px;
+  font-size: clamp(24px, 6vw, 28px);
 }
 
 .name-input {
   width: 100%;
-  padding: 15px 20px;
+  padding: clamp(12px, 3vh, 15px) clamp(16px, 4vw, 20px);
   border: 3px solid var(--color-primary);
   border-radius: var(--border-radius-small);
-  font-size: 18px;
+  font-size: clamp(16px, 4vw, 18px);
   font-weight: 600;
   text-align: center;
   background: white;
@@ -1159,13 +1161,14 @@ body {
   background: linear-gradient(135deg, var(--color-success), #45a049);
   color: white;
   border: none;
-  padding: 12px 25px;
+  padding: clamp(10px, 2.5vh, 12px) clamp(20px, 5vw, 25px);
   border-radius: var(--border-radius-small);
-  font-size: 16px;
+  font-size: clamp(14px, 3.5vw, 16px);
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
   box-shadow: var(--shadow-soft);
+  min-width: clamp(120px, 30vw, 140px);
 }
 
 .name-confirm-button:hover {
@@ -1175,4 +1178,61 @@ body {
 
 .name-confirm-button:active {
   transform: scale(0.98);
+}
+
+/* Media queries para responsividade aprimorada */
+@media (max-width: 480px) {
+  .update-app-button {
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .main-title {
+    font-size: clamp(24px, 12vw, 48px);
+    letter-spacing: 1px;
+  }
+  
+  .logo-icon {
+    font-size: clamp(40px, 12vw, 80px);
+  }
+  
+  .sparkle-effects {
+    gap: 10px;
+  }
+  
+  .sparkle {
+    font-size: 18px;
+  }
+  
+  .name-input-container {
+    padding: 15px;
+    max-width: 95vw;
+  }
+  
+  .upload-area {
+    padding: 15px;
+  }
+  
+  .image-grid {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-height: 600px) {
+  .upload-screen {
+    padding-top: 10px;
+    padding-bottom: 20px;
+  }
+  
+  .hero-section {
+    margin: 15px 0 10px;
+  }
+  
+  .name-input-section {
+    margin: 10px 0;
+  }
 }
