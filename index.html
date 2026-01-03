@@ -26,14 +26,12 @@
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      overflow: hidden;
       touch-action: manipulation;
     }
     
     #root {
       width: 100vw;
       height: 100vh;
-      overflow: hidden;
     }
     
     .loading {
@@ -59,8 +57,14 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('Service Worker registrado'))
-          .catch(err => console.log('Erro no Service Worker:', err));
+          .then(reg => {
+            console.log('Service Worker registrado:', reg.scope)
+            // Forçar atualização se houver uma nova versão
+            reg.update()
+          })
+          .catch(err => {
+            console.log('Erro no Service Worker:', err)
+          });
       });
     }
   </script>

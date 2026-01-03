@@ -1,9 +1,11 @@
-const CACHE_NAME = 'quebra-cabeca-v5'
+const CACHE_NAME = 'quebra-cabeca-v7'
 const urlsToCache = [
   '/',
   '/index.html',
   '/puzzle-icon.svg',
-  '/manifest.json'
+  '/manifest.json',
+  '/favicon.ico',
+  '/favicon.svg'
 ]
 
 self.addEventListener('install', (event) => {
@@ -35,22 +37,7 @@ self.addEventListener('fetch', (event) => {
         if (response) {
           return response
         }
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type === 'opaque') {
-            return response
-          }
-          const responseToCache = response.clone()
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache)
-          })
-          return response
-        })
+        return fetch(event.request)
       })
   )
-})
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting()
-  }
 })
