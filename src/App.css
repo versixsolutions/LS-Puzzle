@@ -210,6 +210,45 @@ body {
 .success-text {
   color: var(--color-success);
   font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.start-game-button {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  margin: 20px auto 0;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: var(--color-white);
+  font-size: clamp(20px, 4vw, 32px);
+  font-weight: bold;
+  padding: 20px 40px;
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+  animation: pulse-glow 2s ease infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 12px 30px rgba(76, 175, 80, 0.6);
+  }
+}
+
+.start-game-button:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 15px 35px rgba(76, 175, 80, 0.5);
+}
+
+.start-game-button:active {
+  transform: translateY(-1px) scale(1.02);
 }
 
 /* Game Screen */
@@ -376,49 +415,54 @@ body {
   border-radius: 10px;
 }
 
-/* Peças de Quebra-Cabeça */
+/* Peças de Quebra-Cabeça - Formato Retangular Simples */
 .puzzle-piece {
   cursor: grab;
   transition: all var(--transition-fast);
-  border-radius: 8px;
-  background: white;
-  padding: 8px;
+  border-radius: 6px;
+  overflow: hidden;
   box-shadow: var(--shadow-soft);
+  background: white;
 }
 
 .puzzle-piece:active {
   cursor: grabbing;
 }
 
+.puzzle-piece img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
 .puzzle-piece.available {
   width: 100%;
   aspect-ratio: 1;
+  border: 3px solid var(--color-primary);
 }
 
 .puzzle-piece.available:hover {
   transform: scale(1.05);
   box-shadow: var(--shadow-medium);
+  border-color: var(--color-warning);
   z-index: 5;
 }
 
 .puzzle-piece.placed {
   width: 100%;
   height: 100%;
-  padding: 0;
-  box-shadow: none;
-  background: transparent;
+  border: 2px solid transparent;
 }
 
 .puzzle-piece.locked {
   cursor: not-allowed;
   pointer-events: none;
-  opacity: 1;
-}
-
-.piece-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
+  border-color: var(--color-success);
+  border-width: 3px;
 }
 
 /* Game Footer */
