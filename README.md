@@ -7,6 +7,10 @@ Um jogo educativo de quebra-cabeça desenvolvido especificamente para crianças 
 ![Vite](https://img.shields.io/badge/Vite-5.0-646CFF)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+**🔗 Repositório Oficial**: https://github.com/versixsolutions/LS-Puzzle.git
+
+---
+
 ## 🎯 Características Principais
 
 ### 📸 Upload de Imagens Personalizadas
@@ -71,8 +75,8 @@ Um jogo educativo de quebra-cabeça desenvolvido especificamente para crianças 
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/quebra-cabeca-magico.git
-cd quebra-cabeca-magico
+git clone https://github.com/versixsolutions/LS-Puzzle.git
+cd LS-Puzzle
 
 # Instale as dependências
 npm install

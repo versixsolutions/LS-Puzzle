@@ -13,6 +13,7 @@ const LEVELS = [
 ]
 
 const MAX_IMAGES = 6
+const APP_VERSION = '4.0.0'
 
 function App() {
   const [gameState, setGameState] = useState('upload')
@@ -22,12 +23,47 @@ function App() {
   const [pieces, setPieces] = useState([])
   const [draggedPiece, setDraggedPiece] = useState(null)
   const [showHint, setShowHint] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [completedLevels, setCompletedLevels] = useState(new Set())
+  const [updateAvailable, setUpdateAvailable] = useState(false)
   
   const audioRef = useRef({ select: null, drop: null, correct: null, complete: null })
   const canvasRef = useRef(null)
+
+  // Verifica se há atualização disponível
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        const registration = await navigator.serviceWorker.ready
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              setUpdateAvailable(true)
+            }
+          })
+        })
+        
+        // Força verificação de atualização
+        registration.update()
+      } catch (e) {
+        // Service worker não disponível
+      }
+    }
+    
+    if ('serviceWorker' in navigator && gameState === 'upload') {
+      checkForUpdates()
+    }
+  }, [gameState])
+
+  const handleUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration().then(reg => {
+        reg?.waiting?.postMessage({ type: 'SKIP_WAITING' })
+      })
+      window.location.reload()
+    }
+  }
 
   useEffect(() => {
     audioRef.current.select = createBeep(400, 0.1, 'sine')
@@ -128,13 +164,11 @@ function App() {
   }
 
   const startGame = () => {
-    // Embaralha as imagens aleatoriamente para distribuir nos níveis
     const shuffled = [...uploadedImages].sort(() => Math.random() - 0.5)
     setShuffledImages(shuffled)
     setCurrentLevel(0)
     setCompletedLevels(new Set())
     
-    // Inicia o primeiro nível imediatamente
     setTimeout(() => {
       initializePuzzle(0, shuffled)
       setGameState('playing')
@@ -180,15 +214,27 @@ function App() {
             id: row * level.cols + col,
             correctRow: row,
             correctCol: col,
-            currentRow: null,
-            currentCol: null,
+            currentRow: row,
+            currentCol: col,
             image: pieceCanvas.toDataURL(),
             isPlaced: false
           })
         }
       }
       
-      setPieces([...newPieces].sort(() => Math.random() - 0.5))
+      // Embaralha as peças no próprio grid
+      const shuffled = [...newPieces]
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        const tempRow = shuffled[i].currentRow
+        const tempCol = shuffled[i].currentCol
+        shuffled[i].currentRow = shuffled[j].currentRow
+        shuffled[i].currentCol = shuffled[j].currentCol
+        shuffled[j].currentRow = tempRow
+        shuffled[j].currentCol = tempCol
+      }
+      
+      setPieces(shuffled)
     }
     
     img.src = image.src
@@ -212,57 +258,53 @@ function App() {
     e.dataTransfer.dropEffect = 'move'
   }
 
-  const handleDropOnSlot = (e, targetRow, targetCol) => {
+  const handleDropOnPiece = (e, targetPiece) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!draggedPiece) return
+    if (!draggedPiece || draggedPiece.id === targetPiece.id) return
     
     playSound('drop')
-    const isCorrect = draggedPiece.correctRow === targetRow && draggedPiece.correctCol === targetCol
     
+    // Troca as posições das peças
     setPieces(prev => prev.map(p => {
       if (p.id === draggedPiece.id) {
-        return { ...p, currentRow: targetRow, currentCol: targetCol, isPlaced: isCorrect }
+        const newPiece = { ...p, currentRow: targetPiece.currentRow, currentCol: targetPiece.currentCol }
+        const isCorrect = newPiece.currentRow === newPiece.correctRow && newPiece.currentCol === newPiece.correctCol
+        return { ...newPiece, isPlaced: isCorrect }
       }
-      if (p.currentRow === targetRow && p.currentCol === targetCol) {
-        return { ...p, currentRow: null, currentCol: null, isPlaced: false }
+      if (p.id === targetPiece.id) {
+        const newPiece = { ...p, currentRow: draggedPiece.currentRow, currentCol: draggedPiece.currentCol }
+        const isCorrect = newPiece.currentRow === newPiece.correctRow && newPiece.currentCol === newPiece.correctCol
+        return { ...newPiece, isPlaced: isCorrect }
       }
       return p
     }))
     
-    if (isCorrect) {
-      playSound('correct')
-      setTimeout(() => {
-        setPieces(current => {
-          const allCorrect = current.every(p => 
-            p.currentRow === p.correctRow && p.currentCol === p.correctCol
-          )
-          if (allCorrect) {
-            playSound('complete')
-            triggerConfetti()
-            setCompletedLevels(prev => new Set([...prev, currentLevel]))
-            setTimeout(() => setGameState('completed'), 500)
-          }
-          return current
+    // Verifica se alguma peça ficou correta
+    setTimeout(() => {
+      setPieces(current => {
+        const anyCorrect = current.some((p, idx) => {
+          const oldPiece = pieces[idx]
+          return !oldPiece.isPlaced && p.isPlaced
         })
-      }, 100)
-    }
+        
+        if (anyCorrect) {
+          playSound('correct')
+        }
+        
+        const allCorrect = current.every(p => p.isPlaced)
+        if (allCorrect) {
+          playSound('complete')
+          triggerConfetti()
+          setCompletedLevels(prev => new Set([...prev, currentLevel]))
+          setTimeout(() => setGameState('completed'), 500)
+        }
+        
+        return current
+      })
+    }, 100)
     
     setDraggedPiece(null)
-  }
-
-  const toggleFullscreen = async () => {
-    try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen()
-        setIsFullscreen(true)
-      } else {
-        await document.exitFullscreen()
-        setIsFullscreen(false)
-      }
-    } catch (e) {
-      console.error('Fullscreen error')
-    }
   }
 
   const resetPuzzle = () => {
@@ -285,36 +327,52 @@ function App() {
   if (gameState === 'upload') {
     return (
       <div className="upload-screen">
+        {updateAvailable && (
+          <div className="update-banner">
+            <span>✨ Nova versão disponível!</span>
+            <button onClick={handleUpdate} className="update-button">
+              🔄 Atualizar Agora
+            </button>
+          </div>
+        )}
+        
         <h1 className="title">🧩 Quebra-Cabeça Mágico ✨</h1>
         <p className="subtitle">Carregue {MAX_IMAGES} fotos para começar!</p>
         
-        <div className="upload-area">
-          <input type="file" id="imageUpload" accept="image/*,.heic" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
-          <label htmlFor="imageUpload" className="upload-button">
-            📸 Escolher Fotos ({uploadedImages.length}/{MAX_IMAGES})
-          </label>
-          
-          <div className="image-grid">
-            {uploadedImages.map((img, index) => (
-              <div key={index} className="image-preview">
-                <img src={img.src} alt={img.name} />
-                <button onClick={() => removeImage(index)} className="remove-btn">❌</button>
+        <div className="upload-container">
+          <div className="upload-area">
+            <input type="file" id="imageUpload" accept="image/*,.heic" multiple onChange={handleImageUpload} style={{ display: 'none' }} />
+            <label htmlFor="imageUpload" className="upload-button">
+              📸 Escolher Fotos ({uploadedImages.length}/{MAX_IMAGES})
+            </label>
+            
+            {uploadedImages.length > 0 && (
+              <div className="image-grid">
+                {uploadedImages.map((img, index) => (
+                  <div key={index} className="image-preview">
+                    <img src={img.src} alt={img.name} />
+                    <button onClick={() => removeImage(index)} className="remove-btn">❌</button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
           
-          {uploadedImages.length === 0 && <p className="hint-text">Clique no botão acima para carregar fotos! 👆</p>}
+          {uploadedImages.length === 0 && (
+            <p className="hint-text">👆 Clique no botão acima para escolher suas fotos favoritas!</p>
+          )}
+          
           {uploadedImages.length > 0 && uploadedImages.length < MAX_IMAGES && (
-            <p className="hint-text">📸 Carregue mais {MAX_IMAGES - uploadedImages.length} foto(s)!</p>
+            <p className="hint-text">📸 Faltam {MAX_IMAGES - uploadedImages.length} foto(s)! Continue escolhendo!</p>
           )}
           
           {uploadedImages.length === MAX_IMAGES && (
-            <>
-              <p className="success-text">🎉 Todas as fotos carregadas!</p>
+            <div className="start-section">
+              <p className="success-text">🎉 Perfeito! Todas as fotos carregadas!</p>
               <button onClick={startGame} className="start-game-button">
-                🎮 Iniciar Jogo
+                🎮 INICIAR JOGO
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -326,89 +384,82 @@ function App() {
     
     return (
       <div className="completion-screen">
-        <h1 className="celebration-title">🎉 Parabéns! 🎉</h1>
+        <h1 className="celebration-title">🎉 PARABÉNS! 🎉</h1>
         <p className="celebration-text">Você completou o Nível {currentLevel + 1}!</p>
         <div className="completed-image">
           <img src={shuffledImages[currentLevel].src} alt="Completo" />
         </div>
         <div className="completion-buttons">
-          <button onClick={resetPuzzle} className="action-button">🔄 Jogar Novamente</button>
+          <button onClick={resetPuzzle} className="action-button big">
+            🔄 Jogar Novamente
+          </button>
           {!allCompleted && currentLevel < shuffledImages.length - 1 && (
-            <button onClick={nextLevel} className="action-button primary">➡️ Próximo Nível</button>
+            <button onClick={nextLevel} className="action-button big primary">
+              ➡️ Próximo Nível
+            </button>
           )}
-          <button onClick={() => setGameState('upload')} className="action-button">🏠 Novo Jogo</button>
+          <button onClick={() => setGameState('upload')} className="action-button big">
+            🏠 Novo Jogo
+          </button>
         </div>
-        {allCompleted && <p className="victory-text">🏆 Todos os níveis completos! Campeão! 🏆</p>}
+        {allCompleted && <p className="victory-text">🏆 VOCÊ É UM CAMPEÃO! 🏆</p>}
       </div>
     )
   }
 
   const level = LEVELS[currentLevel]
-  const availablePieces = pieces.filter(p => p.currentRow === null)
   
   return (
     <div className="game-screen">
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       <div className="game-header">
-        <button onClick={() => setGameState('upload')} className="header-button">⬅️ Menu</button>
-        <h2 className="level-title">Nível {level.level} - {level.pieces} peças</h2>
-        <div className="header-controls">
-          <button onClick={() => setSoundEnabled(!soundEnabled)} className="header-button">
-            {soundEnabled ? '🔊' : '🔇'}
-          </button>
-          <button onClick={toggleFullscreen} className="header-button">
-            {isFullscreen ? '🗗' : '⛶'}
-          </button>
-        </div>
+        <button onClick={() => setGameState('upload')} className="header-button big">
+          🏠 Menu
+        </button>
+        <h2 className="level-title">Nível {level.level}</h2>
+        <button onClick={() => setSoundEnabled(!soundEnabled)} className="header-button big">
+          {soundEnabled ? '🔊' : '🔇'}
+        </button>
       </div>
 
-      <div className="game-container">
-        <div className="puzzle-section">
-          {showHint && (
-            <div className="hint-overlay">
-              <img src={shuffledImages[currentLevel].src} alt="Dica" />
+      <div className="puzzle-area">
+        {showHint && (
+          <div className="hint-overlay" onClick={() => setShowHint(false)}>
+            <img src={shuffledImages[currentLevel].src} alt="Dica" />
+            <p className="hint-instruction">👆 Toque para esconder</p>
+          </div>
+        )}
+        
+        <div className="puzzle-grid" style={{ gridTemplateColumns: `repeat(${level.cols}, 1fr)`, gridTemplateRows: `repeat(${level.rows}, 1fr)` }}>
+          {pieces.map((piece) => (
+            <div
+              key={piece.id}
+              className={`puzzle-piece ${piece.isPlaced ? 'correct' : ''} ${draggedPiece?.id === piece.id ? 'dragging' : ''}`}
+              draggable={!piece.isPlaced}
+              onDragStart={(e) => handleDragStart(e, piece)}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDropOnPiece(e, piece)}
+              style={{
+                gridRow: piece.currentRow + 1,
+                gridColumn: piece.currentCol + 1
+              }}
+            >
+              <img src={piece.image} alt={`Peça ${piece.id}`} draggable={false} />
+              {piece.isPlaced && <div className="check-mark">✓</div>}
             </div>
-          )}
-          
-          <div className="puzzle-grid" style={{ gridTemplateColumns: `repeat(${level.cols}, 1fr)`, gridTemplateRows: `repeat(${level.rows}, 1fr)` }}>
-            {Array.from({ length: level.rows }).map((_, row) =>
-              Array.from({ length: level.cols }).map((_, col) => {
-                const piece = pieces.find(p => p.currentRow === row && p.currentCol === col)
-                return (
-                  <div key={`${row}-${col}`} className={`puzzle-slot ${piece?.isPlaced ? 'correct' : ''}`}
-                    onDragOver={handleDragOver} onDrop={(e) => handleDropOnSlot(e, row, col)}>
-                    {piece && (
-                      <div className={`puzzle-piece placed ${piece.isPlaced ? 'locked' : ''}`}
-                        draggable={!piece.isPlaced} onDragStart={(e) => handleDragStart(e, piece)} onDragEnd={handleDragEnd}>
-                        <img src={piece.image} alt={`Peça ${piece.id}`} draggable={false} />
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </div>
-
-        <div className="pieces-section">
-          <h3 className="pieces-title">Arraste as peças 👇</h3>
-          <div className="pieces-container">
-            {availablePieces.map((piece) => (
-              <div key={piece.id} className="puzzle-piece available"
-                draggable onDragStart={(e) => handleDragStart(e, piece)} onDragEnd={handleDragEnd}>
-                <img src={piece.image} alt={`Peça ${piece.id}`} draggable={false} />
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
 
       <div className="game-footer">
-        <button onClick={() => setShowHint(!showHint)} className="hint-button">
-          {showHint ? '🙈 Esconder' : '💡 Dica'}
+        <button onClick={() => setShowHint(!showHint)} className="game-button big">
+          💡 {showHint ? 'Esconder' : 'Ver'} Dica
         </button>
-        <button onClick={resetPuzzle} className="reset-button">🔄 Reiniciar</button>
+        <button onClick={resetPuzzle} className="game-button big reset">
+          🔄 Reiniciar
+        </button>
       </div>
     </div>
   )

@@ -29,11 +29,11 @@ Ideias para novas funcionalidades são bem-vindas! Crie uma issue descrevendo:
 ```bash
 # Fork o repositório no GitHub
 # Clone seu fork
-git clone https://github.com/SEU-USUARIO/quebra-cabeca-magico.git
-cd quebra-cabeca-magico
+git clone https://github.com/SEU-USUARIO/LS-Puzzle.git
+cd LS-Puzzle
 
 # Adicione o upstream
-git remote add upstream https://github.com/REPO-ORIGINAL/quebra-cabeca-magico.git
+git remote add upstream https://github.com/versixsolutions/LS-Puzzle.git
 ```
 
 ### 2. Crie uma Branch

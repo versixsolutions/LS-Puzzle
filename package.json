@@ -1,7 +1,26 @@
 {
   "name": "quebra-cabeca-magico",
-  "version": "1.0.0",
+  "version": "4.0.0",
   "type": "module",
+  "description": "Jogo educativo de quebra-cabeça para crianças de 5 anos",
+  "author": "Versix Solutions",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/versixsolutions/LS-Puzzle.git"
+  },
+  "bugs": {
+    "url": "https://github.com/versixsolutions/LS-Puzzle/issues"
+  },
+  "homepage": "https://github.com/versixsolutions/LS-Puzzle#readme",
+  "keywords": [
+    "puzzle",
+    "game",
+    "kids",
+    "education",
+    "pwa",
+    "react"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",

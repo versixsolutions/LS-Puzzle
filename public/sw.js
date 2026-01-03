@@ -1,23 +1,16 @@
-const CACHE_NAME = 'quebra-cabeca-v1'
+const CACHE_NAME = 'quebra-cabeca-v4'
 const urlsToCache = [
   '/',
   '/index.html',
   '/puzzle-icon.svg',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/manifest.json'
 ]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
-  )
-})
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => response || fetch(event.request))
+      .then(() => self.skipWaiting())
   )
 })
 
@@ -31,6 +24,33 @@ self.addEventListener('activate', (event) => {
           }
         })
       )
-    })
+    }).then(() => self.clients.claim())
   )
+})
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        if (response) {
+          return response
+        }
+        return fetch(event.request).then((response) => {
+          if (!response || response.status !== 200 || response.type === 'opaque') {
+            return response
+          }
+          const responseToCache = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache)
+          })
+          return response
+        })
+      })
+  )
+})
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })

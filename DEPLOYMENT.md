@@ -23,8 +23,8 @@ git add .
 # Faça o commit inicial
 git commit -m "🎉 Initial commit - Quebra-Cabeça Mágico"
 
-# Crie um repositório no GitHub e conecte
-git remote add origin https://github.com/SEU-USUARIO/quebra-cabeca-magico.git
+# Conecte ao repositório oficial
+git remote add origin https://github.com/versixsolutions/LS-Puzzle.git
 git branch -M main
 git push -u origin main
 ```
@@ -34,7 +34,7 @@ git push -u origin main
 1. Acesse [vercel.com/new](https://vercel.com/new)
 2. Clique em **"Import Project"**
 3. Selecione **"Import Git Repository"**
-4. Escolha o repositório `quebra-cabeca-magico`
+4. Escolha o repositório `versixsolutions/LS-Puzzle`
 5. Configure o projeto:
    - **Project Name**: `quebra-cabeca-magico` (ou personalizado)
    - **Framework Preset**: `Vite` (detectado automaticamente)
