@@ -34,7 +34,7 @@ export default function App() {
   const [selectedPiece, setSelectedPiece] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showHint, setShowHint] = useState(false)
-  const [swapMode, setSwapMode] = useState('drag')
+  const [swapMode, setSwapMode] = useState('click')
   const [imageAspectRatio, setImageAspectRatio] = useState(4/3)
   const [isShuffling, setIsShuffling] = useState(false)
   
@@ -601,10 +601,7 @@ export default function App() {
               {pieces.map((piece) => (
                 <div
                   key={piece.id}
-                  draggable={!piece.isPlaced && swapMode === 'drag'}
-                  onDragStart={(e) => handleDragStart(e, piece)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => handleDrop(e, piece)}
+                  draggable={false}
                   onClick={() => handlePieceClick(piece)}
                   className={`puzzle-piece-3d relative rounded-lg overflow-hidden bg-white shadow-lg cursor-pointer ${
                     selectedPiece?.id === piece.id ? 'ring-4 ring-yellow-400 z-10' : ''
