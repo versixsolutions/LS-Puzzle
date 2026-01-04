@@ -18,20 +18,6 @@ const LEVELS = [
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-// 10 Imagens filtradas pelas 5 keywords solicitadas (Ciclo 2x)
-const RANDOM_IMAGES = [
-  'https://loremflickr.com/800/800/toys?random=1',      // 1. Toys
-  'https://loremflickr.com/800/800/puppy?random=2',     // 2. Puppy
-  'https://loremflickr.com/800/800/kitten?random=3',    // 3. Kitten
-  'https://loremflickr.com/800/800/alphabet?random=4',  // 4. Alphabet
-  'https://loremflickr.com/800/800/numbers?random=5',   // 5. Numbers
-  'https://loremflickr.com/800/800/toys?random=6',      // 6. Toys (Repete)
-  'https://loremflickr.com/800/800/puppy?random=7',     // 7. Puppy (Repete)
-  'https://loremflickr.com/800/800/kitten?random=8',    // 8. Kitten (Repete)
-  'https://loremflickr.com/800/800/alphabet?random=9',  // 9. Alphabet (Repete)
-  'https://loremflickr.com/800/800/numbers?random=10'   // 10. Numbers (Repete)
-]
-
 // Áudios em Base64
 const AUDIO_SRC = {
   BEEP: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
@@ -506,27 +492,37 @@ export default function App() {
     }
 
     const generateRandomImages = async () => {
+      const slotsToFill = 10 - uploadedImages.length
+      // Palavras-chave solicitadas
+      const keywords = ['toys', 'puppy', 'kitten', 'alphabet', 'numbers']
+
       const randomImages = await Promise.all(
-        RANDOM_IMAGES.slice(0, 10 - uploadedImages.length).map((url, idx) => 
-          new Promise((resolve) => {
-            const img = new Image()
-            img.crossOrigin = 'anonymous'
-            img.onload = () => {
-              const canvas = document.createElement('canvas')
-              canvas.width = 800
-              canvas.height = 800
-              const ctx = canvas.getContext('2d')
-              ctx.drawImage(img, 0, 0, 800, 800)
-              resolve({
-                src: canvas.toDataURL('image/jpeg'),
-                name: `random-${idx + 1}.jpg`,
-                type: 'JPG',
-                width: 800,
-                height: 800,
-                aspectRatio: 1
-              })
-            }
-            img.onerror = () => {
+        Array.from({ length: slotsToFill }).map(async (_, idx) => {
+           // Sorteia uma keyword aleatória da lista
+           const keyword = keywords[Math.floor(Math.random() * keywords.length)]
+           // Cria ID único para garantir nova imagem (cache busting)
+           const uniqueId = Date.now() + Math.random() 
+           const url = `https://loremflickr.com/800/800/${keyword}?lock=${uniqueId}`
+
+           return new Promise((resolve) => {
+             const img = new Image()
+             img.crossOrigin = 'anonymous'
+             img.onload = () => {
+               const canvas = document.createElement('canvas')
+               canvas.width = 800
+               canvas.height = 800
+               const ctx = canvas.getContext('2d')
+               ctx.drawImage(img, 0, 0, 800, 800)
+               resolve({
+                 src: canvas.toDataURL('image/jpeg'),
+                 name: `random-${keyword}-${idx}.jpg`,
+                 type: 'GEN',
+                 width: 800,
+                 height: 800,
+                 aspectRatio: 1
+               })
+             }
+             img.onerror = () => {
                  resolve({
                     src: getFallbackImage(800, 800, '!'),
                     name: `fallback-${idx}.jpg`,
@@ -535,10 +531,10 @@ export default function App() {
                     height: 800,
                     aspectRatio: 1
                  })
-            }
-            img.src = url
-          })
-        )
+             }
+             img.src = url
+           })
+        })
       )
       setUploadedImages(prev => [...prev, ...randomImages.filter(img => img !== null)])
       playBeep()
