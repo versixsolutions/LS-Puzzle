@@ -18,21 +18,21 @@ const LEVELS = [
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-// 10 Imagens "Lúdicas Infantis" (Usando palavras-chave específicas)
+// 10 Imagens "Lúdicas Infantis"
 const RANDOM_IMAGES = [
-  'https://loremflickr.com/800/800/toys?random=1',      // Brinquedos
-  'https://loremflickr.com/800/800/kitten?random=2',    // Gatinho
-  'https://loremflickr.com/800/800/puppy?random=3',     // Cachorrinho
-  'https://loremflickr.com/800/800/cartoon?random=4',   // Desenho
-  'https://loremflickr.com/800/800/lego?random=5',      // Lego
-  'https://loremflickr.com/800/800/park?random=6',      // Parque
-  'https://loremflickr.com/800/800/candy?random=7',     // Doces
-  'https://loremflickr.com/800/800/animals?random=8',   // Animais variados
-  'https://loremflickr.com/800/800/robot?random=9',     // Robôs
-  'https://loremflickr.com/800/800/disney?random=10'    // Tema Disney/Personagens
+  'https://loremflickr.com/800/800/toys?random=1',
+  'https://loremflickr.com/800/800/kitten?random=2',
+  'https://loremflickr.com/800/800/puppy?random=3',
+  'https://loremflickr.com/800/800/cartoon?random=4',
+  'https://loremflickr.com/800/800/lego?random=5',
+  'https://loremflickr.com/800/800/park?random=6',
+  'https://loremflickr.com/800/800/candy?random=7',
+  'https://loremflickr.com/800/800/animals?random=8',
+  'https://loremflickr.com/800/800/robot?random=9',
+  'https://loremflickr.com/800/800/disney?random=10'
 ]
 
-// Áudios em Base64 (Otimizado)
+// Áudios em Base64
 const AUDIO_SRC = {
   BEEP: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
   MUSIC: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuByO/aiTYIGGS57OihUBELTKXh8LJnHgU2jdT0yoAsBSF0wu/glEILElyx6OyqWBUIRJzd87ppIgYugcXu24k2Bxdju+vooVETDE6k4fK0aR8FNoLS9ciALgcfdcLu35VFDRFYrOfulV8YCkCY2vO9cyMGK37C7tuLOQkaaLno7KFRGAxMouHz',
@@ -45,25 +45,42 @@ export default function App() {
   const [playerAvatar, setPlayerAvatar] = useState(null)
   const [uploadedImages, setUploadedImages] = useState([])
   const [currentLevel, setCurrentLevel] = useState(0)
-  const [levelProgress, setLevelProgress] = useState(LEVELS.map(l => ({ ...l })))
+  
+  // STAFF ENGINEER: Inicialização com Persistência (Lazy State Initialization)
+  const [levelProgress, setLevelProgress] = useState(() => {
+    try {
+      const saved = localStorage.getItem('foto_puzzle_progress')
+      return saved ? JSON.parse(saved) : LEVELS.map(l => ({ ...l }))
+    } catch (e) {
+      return LEVELS.map(l => ({ ...l }))
+    }
+  })
+
   const [pieces, setPieces] = useState([])
   const [selectedPiece, setSelectedPiece] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showHint, setShowHint] = useState(false)
   const [swapMode, setSwapMode] = useState('drag')
-  const [imageAspectRatio, setImageAspectRatio] = useState(1) // Fixo em 1:1
+  const [imageAspectRatio, setImageAspectRatio] = useState(1)
   const [isShuffling, setIsShuffling] = useState(false)
   
   // Detecção de Orientação
   const [isWrongOrientation, setIsWrongOrientation] = useState(false)
   
-  // Refs de Áudio
+  // Refs
   const bgMusicRef = useRef(new Audio(AUDIO_SRC.MUSIC))
   const applauseRef = useRef(new Audio(AUDIO_SRC.APPLAUSE))
   const beepRef = useRef(new Audio(AUDIO_SRC.BEEP))
   const touchStartRef = useRef(null) 
 
-  // ===== EFEITOS =====
+  // ===== EFEITOS DE PERSISTÊNCIA =====
+  
+  // Salvar progresso sempre que mudar
+  useEffect(() => {
+    localStorage.setItem('foto_puzzle_progress', JSON.stringify(levelProgress))
+  }, [levelProgress])
+
+  // ===== EFEITOS DE CONFIGURAÇÃO =====
 
   useEffect(() => {
     const checkOrientation = () => {
@@ -95,6 +112,8 @@ export default function App() {
     }
   }, [screen, soundEnabled])
 
+  // ===== HELPERS =====
+
   const playBeep = () => {
     if (!soundEnabled) return
     if (beepRef.current.paused) {
@@ -113,6 +132,38 @@ export default function App() {
 
   const vibrate = () => {
     if (navigator.vibrate) navigator.vibrate(50)
+  }
+
+  // Função para limpar dados (Reset)
+  const resetProgress = () => {
+    if(confirm('Tem certeza que quer apagar todo o progresso?')) {
+      localStorage.removeItem('foto_puzzle_progress')
+      setLevelProgress(LEVELS.map(l => ({ ...l })))
+      playBeep()
+    }
+  }
+
+  // STAFF ENGINEER: Fallback Generator
+  // Gera uma imagem colorida caso a imagem externa falhe
+  const getFallbackImage = (width, height, text) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    
+    // Padrão colorido
+    const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C']
+    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)]
+    ctx.fillRect(0, 0, width, height)
+    
+    // Texto
+    ctx.fillStyle = 'white'
+    ctx.font = 'bold 40px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('?', width/2, height/2)
+    
+    return canvas.toDataURL('image/jpeg')
   }
 
   // ===== LÓGICA DO JOGO =====
@@ -151,12 +202,25 @@ export default function App() {
 
   const initializePuzzle = () => {
     const image = uploadedImages[currentLevel]
-    if (!image) return
+    // Se não tiver imagem, usa uma aleatória de fallback temporário
+    if (!image) return 
 
     setIsShuffling(true)
     const img = new Image()
     img.crossOrigin = 'anonymous'
     
+    // STAFF ENGINEER: Tratamento de Erro de Imagem
+    img.onerror = () => {
+      console.warn("Imagem falhou, usando fallback gerado.")
+      const fallbackSrc = getFallbackImage(800, 800, '?')
+      // Atualiza a imagem no estado para o fallback
+      const newImages = [...uploadedImages]
+      newImages[currentLevel] = { ...newImages[currentLevel], src: fallbackSrc }
+      setUploadedImages(newImages)
+      // Reinicia a função com a nova imagem (evita loop infinito com flag se necessário, mas aqui o src já muda)
+      img.src = fallbackSrc 
+    }
+
     img.onload = () => {
       const targetAspectRatio = 1
       setImageAspectRatio(targetAspectRatio)
@@ -215,11 +279,6 @@ export default function App() {
       setIsShuffling(false)
     }
     
-    img.onerror = () => {
-      console.error("Erro ao carregar imagem")
-      setIsShuffling(false)
-    }
-    
     img.src = image.src
   }
 
@@ -254,7 +313,7 @@ export default function App() {
     vibrate()
   }
 
-  // --- HANDLERS ---
+  // --- HANDLERS (MOUSE & TOUCH) ---
   const handleDragStart = (e, piece) => {
     if (piece.isPlaced || swapMode !== 'drag') return
     e.dataTransfer.effectAllowed = 'move'
@@ -347,8 +406,8 @@ export default function App() {
     <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'}}>
       <div className="floating-card max-w-sm w-full p-6 sm:p-8 text-center">
         <div className="flex justify-between items-center mb-6">
-          <button className="icon-btn"><span className="text-xl sm:text-2xl">⚙️</span></button>
-          <button onClick={() => setSoundEnabled(!soundEnabled)} className="icon-btn">
+          <button aria-label="Configurações (Resetar)" onClick={resetProgress} className="icon-btn text-xs"><span className="text-xl sm:text-2xl">⚙️</span></button>
+          <button aria-label="Ligar/Desligar Som" onClick={() => setSoundEnabled(!soundEnabled)} className="icon-btn">
             <span className="text-xl sm:text-2xl">{soundEnabled ? '🎵' : '🔇'}</span>
           </button>
         </div>
@@ -383,9 +442,9 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'}}>
         <div className="floating-card max-w-md w-full p-6 sm:p-8">
           <div className="flex items-center gap-4 mb-6 sm:mb-8">
-            <button onClick={() => setScreen('welcome')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
+            <button aria-label="Voltar" onClick={() => setScreen('welcome')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <h2 className="text-lg sm:text-2xl font-bold flex-1 text-center">Quem é você?</h2>
-            <button className="icon-btn bg-cyan-100"><span className="text-xl sm:text-2xl">ℹ️</span></button>
+            <button aria-label="Informações" className="icon-btn bg-cyan-100"><span className="text-xl sm:text-2xl">ℹ️</span></button>
           </div>
           <div className="flex flex-col items-center mb-6">
             <div className="cursor-pointer mb-4" onClick={() => fileInputRef.current?.click()} style={{
@@ -397,8 +456,8 @@ export default function App() {
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
             </div>
             <div className="flex gap-3 mb-4">
-              <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-cyan-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">📷</button>
-              <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">🖼️</button>
+              <button aria-label="Tirar Foto" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-cyan-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">📷</button>
+              <button aria-label="Escolher da Galeria" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">🖼️</button>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 mb-2">Toque para escolher</p>
             <div className="bg-white border-2 border-gray-200 rounded-2xl px-4 sm:px-6 py-2 sm:py-3 min-w-[180px] sm:min-w-[200px] text-center">
@@ -409,8 +468,8 @@ export default function App() {
             {ALPHABET.map(letter => (
               <button key={letter} onClick={() => { if (tempName.length < 10) { setTempName(tempName + letter); playBeep() }}} className="keyboard-btn text-sm sm:text-lg">{letter}</button>
             ))}
-            <button onClick={() => { setTempName(tempName.slice(0, -1)); playBeep() }} className="keyboard-btn col-span-2 bg-red-50 text-red-500 text-sm sm:text-base">⌫</button>
-            <button onClick={() => { setTempName(''); playBeep() }} className="keyboard-btn col-span-2 bg-gray-50 text-sm sm:text-base">🔄</button>
+            <button aria-label="Apagar" onClick={() => { setTempName(tempName.slice(0, -1)); playBeep() }} className="keyboard-btn col-span-2 bg-red-50 text-red-500 text-sm sm:text-base">⌫</button>
+            <button aria-label="Limpar tudo" onClick={() => { setTempName(''); playBeep() }} className="keyboard-btn col-span-2 bg-gray-50 text-sm sm:text-base">🔄</button>
           </div>
           <button onClick={() => { if (tempName.trim()) { setPlayerName(tempName); playBeep(); setScreen('upload') }}} className="btn-yellow w-full text-base sm:text-lg font-bold">JOGAR AGORA! ▶️</button>
         </div>
@@ -421,7 +480,6 @@ export default function App() {
   const UploadScreen = () => {
     const handleImageUpload = async (e) => {
       const files = Array.from(e.target.files)
-      // LIMITE AUMENTADO PARA 10
       if (uploadedImages.length + files.length > 10) {
         alert('Máximo 10 fotos!')
         return
@@ -464,7 +522,6 @@ export default function App() {
 
     const generateRandomImages = async () => {
       const randomImages = await Promise.all(
-        // LIMITE AUMENTADO PARA 10
         RANDOM_IMAGES.slice(0, 10 - uploadedImages.length).map((url, idx) => 
           new Promise((resolve) => {
             const img = new Image()
@@ -484,7 +541,17 @@ export default function App() {
                 aspectRatio: 1
               })
             }
-            img.onerror = () => resolve(null)
+            // STAFF: Se falhar a carga do aleatório, gera fallback
+            img.onerror = () => {
+                 resolve({
+                    src: getFallbackImage(800, 800, '!'),
+                    name: `fallback-${idx}.jpg`,
+                    type: 'GEN',
+                    width: 800,
+                    height: 800,
+                    aspectRatio: 1
+                 })
+            }
             img.src = url
           })
         )
@@ -502,7 +569,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'}}>
         <div className="floating-card max-w-4xl w-full p-6 sm:p-8">
           <div className="flex items-center gap-4 mb-6 sm:mb-8">
-            <button onClick={() => setScreen('register')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
+            <button aria-label="Voltar" onClick={() => setScreen('register')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center">
               <h2 className="text-lg sm:text-xl font-bold">Personalizar Quebra-Cabeça</h2>
             </div>
@@ -521,7 +588,6 @@ export default function App() {
             </button>
           )}
           
-          {/* GRID AJUSTADO PARA 10 FOTOS */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
             {[...Array(10)].map((_, index) => (
               <div key={index} className="photo-slot relative aspect-square">
@@ -529,7 +595,7 @@ export default function App() {
                   <>
                     <img src={uploadedImages[index].src} alt={`Foto ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
                     <div className="badge">{uploadedImages[index].type.slice(0,3)}</div>
-                    <button onClick={() => removeImage(index)} className="absolute top-2 right-2 w-6 h-6 sm:w-8 sm:h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 text-xs sm:text-base">✕</button>
+                    <button aria-label="Remover Foto" onClick={() => removeImage(index)} className="absolute top-2 right-2 w-6 h-6 sm:w-8 sm:h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 text-xs sm:text-base">✕</button>
                   </>
                 ) : (
                   <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
@@ -556,7 +622,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'}}>
         <div className="floating-card max-w-md w-full p-6 sm:p-8">
           <div className="flex items-center gap-4 mb-6 sm:mb-8">
-            <button onClick={() => setScreen('upload')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
+            <button aria-label="Voltar" onClick={() => setScreen('upload')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center"><h2 className="text-lg sm:text-xl font-bold">Mapa de Aventura</h2></div>
           </div>
           <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -610,8 +676,8 @@ export default function App() {
           <div className="bg-white rounded-2xl p-4 mb-4">
             <p className="text-sm font-bold mb-3 text-center text-gray-700">Modo de Jogo</p>
             <div className="flex gap-2">
-              <button onClick={() => { setSwapMode('drag'); playBeep() }} className={`flex-1 py-3 rounded-xl font-bold text-sm transition ${swapMode === 'drag' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600'}`}>🖐️ Arrastar</button>
-              <button onClick={() => { setSwapMode('click'); playBeep() }} className={`flex-1 py-3 rounded-xl font-bold text-sm transition ${swapMode === 'click' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600'}`}>👆 Clicar</button>
+              <button aria-label="Modo Arrastar" onClick={() => { setSwapMode('drag'); playBeep() }} className={`flex-1 py-3 rounded-xl font-bold text-sm transition ${swapMode === 'drag' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600'}`}>🖐️ Arrastar</button>
+              <button aria-label="Modo Clicar" onClick={() => { setSwapMode('click'); playBeep() }} className={`flex-1 py-3 rounded-xl font-bold text-sm transition ${swapMode === 'click' ? 'bg-purple-500 text-white shadow-lg' : 'bg-gray-100 text-gray-600'}`}>👆 Clicar</button>
             </div>
           </div>
         </div>
@@ -628,16 +694,15 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'}}>
         <div className="floating-card w-full max-w-4xl p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <button onClick={() => setScreen('levels')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
+            <button aria-label="Voltar aos Níveis" onClick={() => setScreen('levels')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center">
-              {/* INDICADOR DE NÍVEL ADICIONADO AQUI */}
               <h2 className="text-xl sm:text-2xl font-black text-purple-600 mb-1">NÍVEL {level.level}</h2>
               <div className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
                  <span className="text-xs font-semibold text-gray-500">Peças:</span>
                  <span className="text-sm font-bold text-gray-800">{progress}/{level.pieces}</span>
               </div>
             </div>
-            <button onClick={() => setSoundEnabled(!soundEnabled)} className="icon-btn">
+            <button aria-label="Ligar/Desligar Som" onClick={() => setSoundEnabled(!soundEnabled)} className="icon-btn">
               <span className="text-xl sm:text-2xl">{soundEnabled ? '🔊' : '🔇'}</span>
             </button>
           </div>
@@ -702,9 +767,9 @@ export default function App() {
             </div>
           )}
           <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
-            <button onClick={() => { setShowHint(true); playBeep() }} className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-yellow-400 text-gray-800 rounded-full text-sm sm:text-base font-bold shadow-lg hover:scale-105 transition">💡 Dica</button>
-            <button onClick={() => { if(!document.fullscreenElement) { document.documentElement.requestFullscreen() } else { document.exitFullscreen() }; playBeep() }} className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-blue-500 text-white rounded-full text-sm sm:text-base font-bold shadow-lg hover:scale-105 transition">⛶ Tela Cheia</button>
-            <button onClick={() => { initializePuzzle(); playBeep() }} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white rounded-full shadow-lg hover:scale-110 transition"><span className="text-xl sm:text-2xl">🔄</span></button>
+            <button aria-label="Mostrar Dica" onClick={() => { setShowHint(true); playBeep() }} className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-yellow-400 text-gray-800 rounded-full text-sm sm:text-base font-bold shadow-lg hover:scale-105 transition">💡 Dica</button>
+            <button aria-label="Tela Cheia" onClick={() => { if(!document.fullscreenElement) { document.documentElement.requestFullscreen() } else { document.exitFullscreen() }; playBeep() }} className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-blue-500 text-white rounded-full text-sm sm:text-base font-bold shadow-lg hover:scale-105 transition">⛶ Tela Cheia</button>
+            <button aria-label="Reiniciar Nível" onClick={() => { initializePuzzle(); playBeep() }} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white rounded-full shadow-lg hover:scale-110 transition"><span className="text-xl sm:text-2xl">🔄</span></button>
           </div>
         </div>
       </div>
@@ -745,8 +810,8 @@ export default function App() {
             {currentLevel < LEVELS.length - 1 ? 'PRÓXIMA FASE' : 'VER MAPA'}
           </button>
           <div className="flex gap-6 sm:gap-8 justify-center">
-            <button onClick={() => { playBeep(); setScreen('levels') }} className="flex flex-col items-center gap-1"><span className="text-2xl">🏠</span><span className="text-xs font-semibold">Menu</span></button>
-            <button onClick={() => { playBeep(); setScreen('game') }} className="flex flex-col items-center gap-1"><span className="text-2xl">🔄</span><span className="text-xs font-semibold">Repetir</span></button>
+            <button aria-label="Voltar aos Níveis" onClick={() => { playBeep(); setScreen('levels') }} className="flex flex-col items-center gap-1"><span className="text-2xl">🏠</span><span className="text-xs font-semibold">Menu</span></button>
+            <button aria-label="Jogar Novamente" onClick={() => { playBeep(); setScreen('game') }} className="flex flex-col items-center gap-1"><span className="text-2xl">🔄</span><span className="text-xs font-semibold">Repetir</span></button>
           </div>
         </div>
       </div>
