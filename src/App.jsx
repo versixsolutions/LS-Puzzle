@@ -1,30 +1,38 @@
 import { useState, useEffect, useRef } from 'react'
-// REMOVIDO: import confetti e heic2any (agora são carregados via Lazy Loading)
 
 // ===== CONSTANTES E CONFIGURAÇÕES =====
 
-// NÍVEIS: Grids Quadrados (2x2 até 7x7)
+// NÍVEIS: 10 Fases (Conforme solicitado)
 const LEVELS = [
   { level: 1, pieces: 4, stars: 0 },  // 2x2
-  { level: 2, pieces: 9, stars: 0 },  // 3x3
-  { level: 3, pieces: 16, stars: 0 }, // 4x4
-  { level: 4, pieces: 25, stars: 0 }, // 5x5
-  { level: 5, pieces: 36, stars: 0 }, // 6x6
-  { level: 6, pieces: 49, stars: 0 }  // 7x7
+  { level: 2, pieces: 4, stars: 0 },  // 2x2
+  { level: 3, pieces: 9, stars: 0 },  // 3x3
+  { level: 4, pieces: 9, stars: 0 },  // 3x3
+  { level: 5, pieces: 16, stars: 0 }, // 4x4
+  { level: 6, pieces: 16, stars: 0 }, // 4x4
+  { level: 7, pieces: 25, stars: 0 }, // 5x5
+  { level: 8, pieces: 25, stars: 0 }, // 5x5
+  { level: 9, pieces: 36, stars: 0 }, // 6x6
+  { level: 10, pieces: 36, stars: 0 } // 6x6
 ]
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
+// 10 Imagens Aleatórias para cobrir os 10 níveis
 const RANDOM_IMAGES = [
   'https://picsum.photos/800/800?random=1',
   'https://picsum.photos/800/800?random=2',
   'https://picsum.photos/800/800?random=3',
   'https://picsum.photos/800/800?random=4',
   'https://picsum.photos/800/800?random=5',
-  'https://picsum.photos/800/800?random=6'
+  'https://picsum.photos/800/800?random=6',
+  'https://picsum.photos/800/800?random=7',
+  'https://picsum.photos/800/800?random=8',
+  'https://picsum.photos/800/800?random=9',
+  'https://picsum.photos/800/800?random=10'
 ]
 
-// Base64 movidos para fora para não recriar strings gigantes na memória
+// Áudios em Base64 (Otimizado)
 const AUDIO_SRC = {
   BEEP: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
   MUSIC: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuByO/aiTYIGGS57OihUBELTKXh8LJnHgU2jdT0yoAsBSF0wu/glEILElyx6OyqWBUIRJzd87ppIgYugcXu24k2Bxdju+vooVETDE6k4fK0aR8FNoLS9ciALgcfdcLu35VFDRFYrOfulV8YCkCY2vO9cyMGK37C7tuLOQkaaLno7KFRGAxMouHz',
@@ -46,35 +54,28 @@ export default function App() {
   const [imageAspectRatio, setImageAspectRatio] = useState(1) // Fixo em 1:1
   const [isShuffling, setIsShuffling] = useState(false)
   
-  // Detecção de Orientação (P1)
+  // Detecção de Orientação
   const [isWrongOrientation, setIsWrongOrientation] = useState(false)
   
-  // Refs de Áudio Otimizados (P2)
+  // Refs de Áudio
   const bgMusicRef = useRef(new Audio(AUDIO_SRC.MUSIC))
   const applauseRef = useRef(new Audio(AUDIO_SRC.APPLAUSE))
   const beepRef = useRef(new Audio(AUDIO_SRC.BEEP))
   const touchStartRef = useRef(null) 
 
-  // ===== EFEITOS DE INICIALIZAÇÃO E UX =====
+  // ===== EFEITOS =====
 
-  // Monitorar orientação da tela (P1)
   useEffect(() => {
     const checkOrientation = () => {
-      // Se a altura for muito pequena (celular deitado), avisa
-      // Consideramos "muito pequena" menos de 500px para o jogo funcionar bem
       const isLandscapeMobile = window.innerWidth > window.innerHeight && window.innerHeight < 500
       setIsWrongOrientation(isLandscapeMobile)
     }
-    
     window.addEventListener('resize', checkOrientation)
-    checkOrientation() // Checagem inicial
-    
+    checkOrientation()
     return () => window.removeEventListener('resize', checkOrientation)
   }, [])
 
-  // Configuração de Áudio
   useEffect(() => {
-    // Configurações iniciais
     bgMusicRef.current.loop = true
     bgMusicRef.current.volume = 0.1
     applauseRef.current.volume = 0.3
@@ -86,7 +87,6 @@ export default function App() {
     }
   }, [])
 
-  // Controle de Música de Fundo
   useEffect(() => {
     if (soundEnabled && screen === 'welcome') {
       bgMusicRef.current.play().catch(() => {})
@@ -95,11 +95,8 @@ export default function App() {
     }
   }, [screen, soundEnabled])
 
-  // Funções de Play Helper (Evita criar new Audio toda vez)
   const playBeep = () => {
     if (!soundEnabled) return
-    // Clone node permite tocar sons sobrepostos rapidamente se necessário, 
-    // mas para beep simples, resetar o tempo é melhor para performance mobile
     if (beepRef.current.paused) {
         beepRef.current.play().catch(() => {})
     } else {
@@ -114,9 +111,8 @@ export default function App() {
     }
   }
 
-  // Tátil (Haptics) (P2)
   const vibrate = () => {
-    if (navigator.vibrate) navigator.vibrate(50); // Vibração curta de 50ms
+    if (navigator.vibrate) navigator.vibrate(50)
   }
 
   // ===== LÓGICA DO JOGO =====
@@ -255,11 +251,10 @@ export default function App() {
       return newPieces
     })
     
-    // Feedback de Sucesso (P2)
     vibrate()
   }
 
-  // --- HANDLERS (MOUSE & TOUCH) ---
+  // --- HANDLERS ---
   const handleDragStart = (e, piece) => {
     if (piece.isPlaced || swapMode !== 'drag') return
     e.dataTransfer.effectAllowed = 'move'
@@ -326,11 +321,8 @@ export default function App() {
     }
   }
 
-  // Lazy Loading da Vitória (P3)
   const handleVictory = async () => {
-    // Importação dinâmica para economizar payload inicial
     const confetti = (await import('canvas-confetti')).default
-    
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
     playApplause()
     setLevelProgress(prev => {
@@ -343,7 +335,6 @@ export default function App() {
 
   // ===== TELAS =====
 
-  // Novo componente para aviso de orientação (P1)
   const RotateDevicePrompt = () => (
     <div className="fixed inset-0 bg-blue-600 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
       <div className="text-6xl mb-4 animate-bounce">📱</div>
@@ -428,11 +419,10 @@ export default function App() {
   }
 
   const UploadScreen = () => {
-    // Lazy Loading do heic2any (P3)
     const handleImageUpload = async (e) => {
       const files = Array.from(e.target.files)
-      if (uploadedImages.length + files.length > 6) {
-        alert('Máximo 6 fotos!')
+      if (uploadedImages.length + files.length > 10) {
+        alert('Máximo 10 fotos!')
         return
       }
 
@@ -440,7 +430,6 @@ export default function App() {
         files.map(async (file) => {
           try {
             let processedFile = file
-            // Verifica se é HEIC e carrega a lib dinamicamente
             if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
               const heic2any = (await import('heic2any')).default
               const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
@@ -474,7 +463,7 @@ export default function App() {
 
     const generateRandomImages = async () => {
       const randomImages = await Promise.all(
-        RANDOM_IMAGES.slice(0, 6 - uploadedImages.length).map((url, idx) => 
+        RANDOM_IMAGES.slice(0, 10 - uploadedImages.length).map((url, idx) => 
           new Promise((resolve) => {
             const img = new Image()
             img.crossOrigin = 'anonymous'
@@ -509,7 +498,7 @@ export default function App() {
 
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'}}>
-        <div className="floating-card max-w-md w-full p-6 sm:p-8">
+        <div className="floating-card max-w-4xl w-full p-6 sm:p-8">
           <div className="flex items-center gap-4 mb-6 sm:mb-8">
             <button onClick={() => setScreen('register')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center">
@@ -523,13 +512,13 @@ export default function App() {
               <button key={format} className="px-3 sm:px-4 py-1 sm:py-2 bg-gray-100 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">{format}</button>
             ))}
           </div>
-          {uploadedImages.length < 6 && (
+          {uploadedImages.length < 10 && (
             <button onClick={generateRandomImages} className="w-full mb-4 py-2 sm:py-3 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-2xl text-sm sm:text-base font-bold hover:scale-105 transition">
-              ✨ Gerar Foto Aleatória ({6 - uploadedImages.length} restantes)
+              ✨ Gerar Foto Aleatória ({10 - uploadedImages.length} restantes)
             </button>
           )}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            {[...Array(6)].map((_, index) => (
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            {[...Array(10)].map((_, index) => (
               <div key={index} className="photo-slot relative aspect-square">
                 {uploadedImages[index] ? (
                   <>
@@ -547,7 +536,7 @@ export default function App() {
               </div>
             ))}
           </div>
-          {uploadedImages.length === 6 && (
+          {uploadedImages.length === 10 && (
             <button onClick={() => { playBeep(); setScreen('levels') }} className="btn-primary w-full text-base sm:text-lg">🔒 Salvar e Jogar</button>
           )}
         </div>
@@ -587,7 +576,7 @@ export default function App() {
               <div className="progress-fill" style={{width: `${totalProgress}%`}}></div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6 max-h-60 overflow-y-auto">
             {LEVELS.map((level, idx) => (
               <div key={idx} className={`level-card cursor-pointer ${idx > 0 && levelProgress[idx - 1].stars === 0 ? 'locked' : ''}`}
                 onClick={() => {
@@ -636,8 +625,12 @@ export default function App() {
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <button onClick={() => setScreen('levels')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center">
-              <p className="text-xs sm:text-sm font-semibold text-gray-500">Progresso</p>
-              <p className="text-lg sm:text-2xl font-bold">{progress}/{level.pieces}</p>
+              {/* INDICADOR DE NÍVEL ADICIONADO AQUI */}
+              <h2 className="text-xl sm:text-2xl font-black text-purple-600 mb-1">NÍVEL {level.level}</h2>
+              <div className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
+                 <span className="text-xs font-semibold text-gray-500">Peças:</span>
+                 <span className="text-sm font-bold text-gray-800">{progress}/{level.pieces}</span>
+              </div>
             </div>
             <button onClick={() => setSoundEnabled(!soundEnabled)} className="icon-btn">
               <span className="text-xl sm:text-2xl">{soundEnabled ? '🔊' : '🔇'}</span>
@@ -714,7 +707,6 @@ export default function App() {
   }
 
   const VictoryScreen = () => {
-    // Efeito para carregar Confetti dinamicamente
     useEffect(() => {
       const runConfetti = async () => {
         const confetti = (await import('canvas-confetti')).default
