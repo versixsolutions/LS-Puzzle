@@ -18,18 +18,18 @@ const LEVELS = [
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-// 10 Imagens "Lúdicas Infantis"
+// 10 Imagens filtradas APENAS por: Toys, Puppy, Kitten
 const RANDOM_IMAGES = [
   'https://loremflickr.com/800/800/toys?random=1',
-  'https://loremflickr.com/800/800/kitten?random=2',
-  'https://loremflickr.com/800/800/puppy?random=3',
-  'https://loremflickr.com/800/800/cartoon?random=4',
-  'https://loremflickr.com/800/800/lego?random=5',
-  'https://loremflickr.com/800/800/park?random=6',
-  'https://loremflickr.com/800/800/candy?random=7',
-  'https://loremflickr.com/800/800/animals?random=8',
-  'https://loremflickr.com/800/800/robot?random=9',
-  'https://loremflickr.com/800/800/disney?random=10'
+  'https://loremflickr.com/800/800/puppy?random=2',
+  'https://loremflickr.com/800/800/kitten?random=3',
+  'https://loremflickr.com/800/800/toys?random=4',
+  'https://loremflickr.com/800/800/puppy?random=5',
+  'https://loremflickr.com/800/800/kitten?random=6',
+  'https://loremflickr.com/800/800/toys?random=7',
+  'https://loremflickr.com/800/800/puppy?random=8',
+  'https://loremflickr.com/800/800/kitten?random=9',
+  'https://loremflickr.com/800/800/toys?random=10'
 ]
 
 // Áudios em Base64
@@ -46,7 +46,7 @@ export default function App() {
   const [uploadedImages, setUploadedImages] = useState([])
   const [currentLevel, setCurrentLevel] = useState(0)
   
-  // STAFF ENGINEER: Inicialização com Persistência (Lazy State Initialization)
+  // Persistência de Dados
   const [levelProgress, setLevelProgress] = useState(() => {
     try {
       const saved = localStorage.getItem('foto_puzzle_progress')
@@ -73,14 +73,11 @@ export default function App() {
   const beepRef = useRef(new Audio(AUDIO_SRC.BEEP))
   const touchStartRef = useRef(null) 
 
-  // ===== EFEITOS DE PERSISTÊNCIA =====
+  // ===== EFEITOS =====
   
-  // Salvar progresso sempre que mudar
   useEffect(() => {
     localStorage.setItem('foto_puzzle_progress', JSON.stringify(levelProgress))
   }, [levelProgress])
-
-  // ===== EFEITOS DE CONFIGURAÇÃO =====
 
   useEffect(() => {
     const checkOrientation = () => {
@@ -134,7 +131,6 @@ export default function App() {
     if (navigator.vibrate) navigator.vibrate(50)
   }
 
-  // Função para limpar dados (Reset)
   const resetProgress = () => {
     if(confirm('Tem certeza que quer apagar todo o progresso?')) {
       localStorage.removeItem('foto_puzzle_progress')
@@ -143,26 +139,19 @@ export default function App() {
     }
   }
 
-  // STAFF ENGINEER: Fallback Generator
-  // Gera uma imagem colorida caso a imagem externa falhe
   const getFallbackImage = (width, height, text) => {
     const canvas = document.createElement('canvas')
     canvas.width = width
     canvas.height = height
     const ctx = canvas.getContext('2d')
-    
-    // Padrão colorido
     const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C']
     ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)]
     ctx.fillRect(0, 0, width, height)
-    
-    // Texto
     ctx.fillStyle = 'white'
     ctx.font = 'bold 40px sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText('?', width/2, height/2)
-    
     return canvas.toDataURL('image/jpeg')
   }
 
@@ -202,22 +191,18 @@ export default function App() {
 
   const initializePuzzle = () => {
     const image = uploadedImages[currentLevel]
-    // Se não tiver imagem, usa uma aleatória de fallback temporário
     if (!image) return 
 
     setIsShuffling(true)
     const img = new Image()
     img.crossOrigin = 'anonymous'
     
-    // STAFF ENGINEER: Tratamento de Erro de Imagem
     img.onerror = () => {
       console.warn("Imagem falhou, usando fallback gerado.")
       const fallbackSrc = getFallbackImage(800, 800, '?')
-      // Atualiza a imagem no estado para o fallback
       const newImages = [...uploadedImages]
       newImages[currentLevel] = { ...newImages[currentLevel], src: fallbackSrc }
       setUploadedImages(newImages)
-      // Reinicia a função com a nova imagem (evita loop infinito com flag se necessário, mas aqui o src já muda)
       img.src = fallbackSrc 
     }
 
@@ -313,7 +298,7 @@ export default function App() {
     vibrate()
   }
 
-  // --- HANDLERS (MOUSE & TOUCH) ---
+  // --- HANDLERS ---
   const handleDragStart = (e, piece) => {
     if (piece.isPlaced || swapMode !== 'drag') return
     e.dataTransfer.effectAllowed = 'move'
@@ -541,7 +526,6 @@ export default function App() {
                 aspectRatio: 1
               })
             }
-            // STAFF: Se falhar a carga do aleatório, gera fallback
             img.onerror = () => {
                  resolve({
                     src: getFallbackImage(800, 800, '!'),
@@ -696,6 +680,7 @@ export default function App() {
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <button aria-label="Voltar aos Níveis" onClick={() => setScreen('levels')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center">
+              {/* INDICADOR DE NÍVEL ADICIONADO AQUI */}
               <h2 className="text-xl sm:text-2xl font-black text-purple-600 mb-1">NÍVEL {level.level}</h2>
               <div className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
                  <span className="text-xs font-semibold text-gray-500">Peças:</span>
@@ -743,15 +728,15 @@ export default function App() {
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
                   onClick={() => handlePieceClick(piece)}
-                  className={`puzzle-piece-3d relative rounded-lg overflow-hidden bg-white shadow-lg cursor-pointer ${
-                    selectedPiece?.id === piece.id ? 'ring-4 ring-yellow-400 z-10 scale-95' : ''
-                  } ${piece.isPlaced ? 'ring-4 ring-green-400' : ''}`}
+                  className={`puzzle-piece-3d relative rounded-lg overflow-hidden bg-white shadow-lg cursor-pointer transition-all duration-200
+                    ${selectedPiece?.id === piece.id ? 'ring-4 ring-fuchsia-500 z-50 scale-110 shadow-2xl' : ''} 
+                    ${piece.isPlaced ? 'ring-4 ring-green-400 z-0' : ''}`}
                   style={{
                     backgroundImage: `url(${piece.image})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     backgroundRepeat: 'no-repeat',
-                    opacity: piece.isPlaced ? 1 : (selectedPiece?.id === piece.id ? 0.7 : 1),
+                    opacity: piece.isPlaced ? 1 : (selectedPiece?.id === piece.id ? 1 : 1),
                     gridRow: piece.currentRow + 1,
                     gridColumn: piece.currentCol + 1,
                     touchAction: 'none'
