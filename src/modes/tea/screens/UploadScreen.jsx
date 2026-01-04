@@ -1,5 +1,5 @@
 import { IMAGE_CONSTRAINTS } from '../../../config/constants'
-import { validateImageFile, loadImage } from '../../../shared/utils/imageProcessing'
+import { validateImageFile, loadImage, createFallbackImage } from '../../../shared/utils/imageProcessing'
 
 export default function UploadScreen({ images, onImagesChange, onNext, onBack, config }) {
   const playSound = () => {
@@ -47,6 +47,51 @@ export default function UploadScreen({ images, onImagesChange, onNext, onBack, c
     playSound()
   }
 
+  const generateRandomImages = async () => {
+    const slotsToFill = IMAGE_CONSTRAINTS.MAX_IMAGES - images.length
+    const keywords = ['toys', 'puppy', 'kitten', 'alphabet', 'numbers', 'colors', 'shapes', 'animals']
+
+    playSound()
+
+    const randomImages = await Promise.all(
+      Array.from({ length: slotsToFill }).map(async (_, idx) => {
+        const keyword = keywords[Math.floor(Math.random() * keywords.length)]
+        const uniqueId = Date.now() + Math.random()
+        const url = `https://loremflickr.com/800/800/${keyword}?lock=${uniqueId}`
+
+        return new Promise((resolve) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            canvas.width = 800
+            canvas.height = 800
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0, 800, 800)
+            resolve({
+              src: canvas.toDataURL('image/jpeg'),
+              name: `random-${keyword}-${idx}.jpg`,
+              width: 800,
+              height: 800
+            })
+          }
+          img.onerror = () => {
+            resolve({
+              src: createFallbackImage(800, 800, keyword[0].toUpperCase()),
+              name: `fallback-${idx}.jpg`,
+              width: 800,
+              height: 800
+            })
+          }
+          img.src = url
+        })
+      })
+    )
+
+    onImagesChange([...images, ...randomImages.filter(img => img !== null)])
+    playSound()
+  }
+
   const removeImage = (index) => {
     onImagesChange(images.filter((_, i) => i !== index))
     playSound()
@@ -89,6 +134,22 @@ export default function UploadScreen({ images, onImagesChange, onNext, onBack, c
             ></div>
           </div>
         </div>
+
+        {/* Botão Gerar Imagens Aleatórias */}
+        {images.length < IMAGE_CONSTRAINTS.MAX_IMAGES && (
+          <div className="mb-6">
+            <button
+              onClick={generateRandomImages}
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 hover:from-yellow-500 hover:to-orange-500 text-white font-bold py-4 rounded-2xl shadow-xl transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span className="text-2xl">🎲</span>
+              <span>Gerar Imagens Aleatórias</span>
+            </button>
+            <p className="text-xs text-gray-500 text-center mt-2">
+              Preenche automaticamente com imagens educativas
+            </p>
+          </div>
+        )}
 
         {/* Image Grid */}
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-6">

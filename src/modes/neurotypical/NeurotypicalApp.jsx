@@ -374,7 +374,7 @@ export default function NeurotypicalApp({ onBack }) {
   )
 
   const WelcomeScreen = () => (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'}}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100">
       {/* Botão Trocar Modo */}
       <button
         onClick={onBack}
@@ -383,20 +383,52 @@ export default function NeurotypicalApp({ onBack }) {
         ← Trocar Modo
       </button>
       
-      <div className="floating-card max-w-sm w-full p-6 sm:p-8 text-center">
-        <div className="flex justify-between items-center mb-6">
-          <button aria-label="Configurações (Resetar)" onClick={resetProgress} className="icon-btn text-xs"><span className="text-xl sm:text-2xl">⚙️</span></button>
-          <button aria-label="Ligar/Desligar Som" onClick={() => setSoundEnabled(!soundEnabled)} className="icon-btn">
-            <span className="text-xl sm:text-2xl">{soundEnabled ? '🎵' : '🔇'}</span>
+      <div className="max-w-md w-full">
+        {/* Header com configurações */}
+        <div className="flex justify-end items-center gap-3 mb-6">
+          <button 
+            aria-label="Resetar Progresso" 
+            onClick={resetProgress} 
+            className="w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center text-2xl"
+          >
+            ⚙️
+          </button>
+          <button 
+            aria-label="Ligar/Desligar Som" 
+            onClick={() => setSoundEnabled(!soundEnabled)} 
+            className="w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center text-2xl"
+          >
+            {soundEnabled ? '🎵' : '🔇'}
           </button>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black mb-2">Foto<span className="text-pink-400">Puzzle</span></h1>
-        <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">Monte sua diversão!</p>
-        <div className="mascot mb-6 sm:mb-8 bg-gradient-to-b from-blue-200 to-blue-300 rounded-3xl p-6 sm:p-8">
-          <div className="text-6xl sm:text-8xl">🧩</div>
+
+        {/* Título */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl font-black mb-2">
+            Quebra-Cabeça
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+              Mágico
+            </span>
+          </h1>
+          <p className="text-gray-600 text-lg">Monte sua diversão!</p>
         </div>
-        <button onClick={() => { playBeep(); setScreen('register') }} className="btn-primary w-full text-base sm:text-lg">▶️ JOGAR</button>
-        <p className="text-xs sm:text-sm text-gray-400 mt-4">Toque para começar</p>
+
+        {/* Mascot */}
+        <div className="text-center mb-8">
+          <div className="inline-block bg-white rounded-3xl p-12 shadow-xl">
+            <div className="text-9xl">🧩</div>
+          </div>
+        </div>
+
+        {/* Botão Jogar */}
+        <button 
+          onClick={() => { playBeep(); setScreen('register') }} 
+          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white text-2xl font-bold py-6 rounded-2xl shadow-xl transition-all transform hover:scale-105 active:scale-95"
+        >
+          ▶️ JOGAR
+        </button>
+
+        <p className="text-center text-xs text-gray-400 mt-8">Modo Clássico</p>
       </div>
     </div>
   )
@@ -418,39 +450,107 @@ export default function NeurotypicalApp({ onBack }) {
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)'}}>
-        <div className="floating-card max-w-md w-full p-6 sm:p-8">
-          <div className="flex items-center gap-4 mb-6 sm:mb-8">
-            <button aria-label="Voltar" onClick={() => setScreen('welcome')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
-            <h2 className="text-lg sm:text-2xl font-bold flex-1 text-center">Quem é você?</h2>
-            <button aria-label="Informações" className="icon-btn bg-cyan-100"><span className="text-xl sm:text-2xl">ℹ️</span></button>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-orange-50 to-yellow-50">
+        <div className="max-w-md w-full">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-8">
+            <button
+              onClick={() => setScreen('welcome')}
+              className="w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-2xl hover:scale-110 transition-transform"
+            >
+              ←
+            </button>
+            <h2 className="text-2xl font-bold flex-1 text-center">Qual seu nome?</h2>
+            <div className="w-12"></div>
           </div>
-          <div className="flex flex-col items-center mb-6">
-            <div className="cursor-pointer mb-4" onClick={() => fileInputRef.current?.click()} style={{
-              width: 'min(200px, 40vw)', height: 'min(200px, 40vw)', borderRadius: '50%', border: '6px solid #f6d365',
-              background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
-            }}>
-              {playerAvatar ? (<img src={playerAvatar} alt="Avatar" className="w-full h-full object-cover" />) : (<span className="text-4xl sm:text-6xl">👤</span>)}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+
+          {/* Avatar */}
+          <div className="flex flex-col items-center mb-8">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="cursor-pointer mb-4 w-40 h-40 rounded-full border-6 border-yellow-400 bg-white flex items-center justify-center overflow-hidden shadow-xl hover:scale-105 transition-transform"
+            >
+              {playerAvatar ? (
+                <img src={playerAvatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-6xl">👤</span>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
             </div>
-            <div className="flex gap-3 mb-4">
-              <button aria-label="Tirar Foto" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-cyan-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">📷</button>
-              <button aria-label="Escolher da Galeria" onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">🖼️</button>
-            </div>
-            <p className="text-xs sm:text-sm text-gray-500 mb-2">Toque para escolher</p>
-            <div className="bg-white border-2 border-gray-200 rounded-2xl px-4 sm:px-6 py-2 sm:py-3 min-w-[180px] sm:min-w-[200px] text-center">
-              <span className="text-xl sm:text-2xl font-bold">{tempName || '_____'}</span>
-            </div>
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-yellow-400 hover:bg-yellow-500 px-6 py-3 rounded-full font-bold shadow-lg transition-colors"
+            >
+              📷 Escolher Foto
+            </button>
           </div>
-          <div className="grid grid-cols-6 gap-1 sm:gap-2 mb-4 sm:mb-6">
+
+          {/* Name Display */}
+          <div className="bg-white border-4 border-gray-200 rounded-2xl px-6 py-4 mb-6 text-center">
+            <span className="text-3xl font-bold">{tempName || '_____'}</span>
+          </div>
+
+          {/* Teclado Alfabético - MAIOR */}
+          <div className="grid grid-cols-5 gap-2 mb-6">
             {ALPHABET.map(letter => (
-              <button key={letter} onClick={() => { if (tempName.length < 10) { setTempName(tempName + letter); playBeep() }}} className="keyboard-btn text-sm sm:text-lg">{letter}</button>
+              <button
+                key={letter}
+                onClick={() => {
+                  if (tempName.length < 10) {
+                    setTempName(tempName + letter)
+                    playBeep()
+                  }
+                }}
+                className="aspect-square bg-white hover:bg-blue-100 rounded-xl text-xl font-bold shadow-lg transition-colors active:scale-95"
+              >
+                {letter}
+              </button>
             ))}
-            <button aria-label="Apagar" onClick={() => { setTempName(tempName.slice(0, -1)); playBeep() }} className="keyboard-btn col-span-2 bg-red-50 text-red-500 text-sm sm:text-base">⌫</button>
-            <button aria-label="Limpar tudo" onClick={() => { setTempName(''); playBeep() }} className="keyboard-btn col-span-2 bg-gray-50 text-sm sm:text-base">🔄</button>
+            
+            {/* Delete Button */}
+            <button
+              onClick={() => {
+                setTempName(tempName.slice(0, -1))
+                playBeep()
+              }}
+              className="col-span-3 bg-red-100 hover:bg-red-200 rounded-xl font-bold shadow-lg transition-colors"
+            >
+              ⌫ Apagar
+            </button>
+            
+            {/* Clear Button */}
+            <button
+              onClick={() => {
+                setTempName('')
+                playBeep()
+              }}
+              className="col-span-2 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold shadow-lg transition-colors"
+            >
+              🔄 Limpar
+            </button>
           </div>
-          <button onClick={() => { if (tempName.trim()) { setPlayerName(tempName); playBeep(); setScreen('upload') }}} className="btn-yellow w-full text-base sm:text-lg font-bold">JOGAR AGORA! ▶️</button>
+
+          {/* Continue Button */}
+          <button
+            onClick={() => {
+              if (tempName.trim()) {
+                setPlayerName(tempName)
+                playBeep()
+                setScreen('upload')
+              }
+            }}
+            disabled={!tempName.trim()}
+            className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white text-xl font-bold py-6 rounded-2xl shadow-xl transition-all disabled:cursor-not-allowed"
+          >
+            Continuar ▶️
+          </button>
         </div>
       </div>
     )
