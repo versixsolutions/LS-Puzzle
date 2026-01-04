@@ -8,7 +8,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          confetti: ['canvas-confetti']
+          supabase: ['@supabase/supabase-js'],
+          charts: ['recharts'],
+          crypto: ['crypto-js']
         }
       }
     },

@@ -1,8 +1,8 @@
 {
-  "name": "quebra-cabeca-magico",
-  "version": "7.2.1",
+  "name": "quebra-cabeca-magico-dual",
+  "version": "8.0.0",
   "type": "module",
-  "description": "FotoPuzzle - Jogo educativo completo com 6 telas seguindo design profissional",
+  "description": "Quebra-cabeça educativo com arquitetura dual TEA/Neurotípico",
   "author": "Versix Solutions",
   "license": "MIT",
   "repository": {
@@ -13,28 +13,36 @@
     "puzzle",
     "game",
     "kids",
+    "tea",
+    "autism",
     "education",
     "pwa",
     "react",
-    "tailwindcss",
-    "complete"
+    "tailwindcss"
   ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "canvas-confetti": "^1.9.2",
-    "heic2any": "^0.0.4"
+    "@supabase/supabase-js": "^2.39.0",
+    "recharts": "^2.10.3",
+    "crypto-js": "^4.2.0",
+    "date-fns": "^3.0.0",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.0",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0"
   }
 }
