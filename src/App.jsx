@@ -589,50 +589,29 @@ export default function App() {
       if (isShuffling) return
 
       setIsShuffling(true)
-      const canvas = canvasRef.current
-      if (!canvas) {
-        setIsShuffling(false)
-        return
-      }
-
-      canvas.width = 800
-      canvas.height = 600
-      const ctx = canvas.getContext('2d')
       const img = new Image()
       
+      // Timeout de segurança
+      const timeout = setTimeout(() => {
+        setIsShuffling(false)
+      }, 5000)
+      
       img.onload = () => {
+        clearTimeout(timeout)
         const aspectRatio = image.aspectRatio || (img.width / img.height)
         setImageAspectRatio(aspectRatio)
         
         const { rows, cols } = calculateGrid(level.pieces, aspectRatio)
-        const pieceWidth = canvas.width / cols
-        const pieceHeight = canvas.height / rows
         const newPieces = []
         
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            const pieceCanvas = document.createElement('canvas')
-            pieceCanvas.width = pieceWidth
-            pieceCanvas.height = pieceHeight
-            const pieceCtx = pieceCanvas.getContext('2d')
-            
-            pieceCtx.drawImage(
-              img,
-              (col * img.width) / cols,
-              (row * img.height) / rows,
-              img.width / cols,
-              img.height / rows,
-              0, 0,
-              pieceWidth, pieceHeight
-            )
-            
             newPieces.push({
               id: row * cols + col,
               correctRow: row,
               correctCol: col,
               currentRow: row,
               currentCol: col,
-              image: pieceCanvas.toDataURL(),
               isPlaced: false
             })
           }
@@ -655,17 +634,8 @@ export default function App() {
       }
       
       img.onerror = () => {
-        setIsShuffling(false)
-      }
-      
-      // Timeout de segurança para evitar travamento
-      const timeout = setTimeout(() => {
-        setIsShuffling(false)
-      }, 5000)
-      
-      img.onload = () => {
         clearTimeout(timeout)
-        // ... existing code
+        setIsShuffling(false)
       }
       
       img.src = image.src
@@ -828,10 +798,13 @@ export default function App() {
                   style={{
                     gridRow: piece.currentRow + 1,
                     gridColumn: piece.currentCol + 1,
-                    opacity: selectedPiece?.id === piece.id ? 0.7 : 1
+                    opacity: selectedPiece?.id === piece.id ? 0.7 : 1,
+                    backgroundImage: `url(${uploadedImages[currentLevel]?.src})`,
+                    backgroundSize: `${cols * 100}% ${rows * 100}%`,
+                    backgroundPosition: `${-piece.correctCol * 100 / cols}% ${-piece.correctRow * 100 / rows}%`,
+                    backgroundRepeat: 'no-repeat'
                   }}
                 >
-                  <img src={piece.image} alt={`Peça ${piece.id}`} className="w-full h-full object-cover" draggable={false} />
                   {piece.isPlaced && (
                     <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs font-bold">✓</span>
