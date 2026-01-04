@@ -34,17 +34,18 @@ export default function App() {
   const [selectedPiece, setSelectedPiece] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showHint, setShowHint] = useState(false)
-  const [swapMode, setSwapMode] = useState('click')
+  const [swapMode, setSwapMode] = useState('drag')
   const [imageAspectRatio, setImageAspectRatio] = useState(4/3)
   const [isShuffling, setIsShuffling] = useState(false)
   
-  // Audio Refs
+  // Refs
   const bgMusicRef = useRef(null)
   const applauseRef = useRef(null)
 
   // ===== ÁUDIOS =====
   useEffect(() => {
     const bgMusic = new Audio()
+    // Shortened base64 placeholder - use your full string
     bgMusic.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuByO/aiTYIGGS57OihUBELTKXh8LJnHgU2jdT0yoAsBSF0wu/glEILElyx6OyqWBUIRJzd87ppIgYugcXu24k2Bxdju+vooVETDE6k4fK0aR8FNoLS9ciALgcfdcLu35VFDRFYrOfulV8YCkCY2vO9cyMGK37C7tuLOQkaaLno7KFRGAxMouHz'
     bgMusic.loop = true
     bgMusic.volume = 0.1
@@ -83,7 +84,7 @@ export default function App() {
     }
   }
 
-  // ===== LÓGICA DO JOGO (Centralizada no App) =====
+  // ===== LÓGICA DO JOGO =====
   
   const calculateGrid = (pieceCount, aspectRatio) => {
     let bestCols = 2
@@ -105,12 +106,12 @@ export default function App() {
     return { rows: bestRows, cols: bestCols }
   }
 
-  // Inicializa o jogo quando a tela muda para 'game'
+  // Inicializa o jogo APENAS quando a tela muda para 'game'
   useEffect(() => {
     if (screen === 'game') {
       initializePuzzle()
     } else {
-      // Limpeza ao sair do jogo
+      // Limpa estado ao sair
       setIsShuffling(false)
       setPieces([])
       setSelectedPiece(null)
@@ -124,7 +125,7 @@ export default function App() {
 
     setIsShuffling(true)
     const img = new Image()
-    img.crossOrigin = 'anonymous' 
+    img.crossOrigin = 'anonymous'
     
     img.onload = () => {
       const aspectRatio = image.aspectRatio || (img.width / img.height)
@@ -133,10 +134,10 @@ export default function App() {
       const level = LEVELS[currentLevel]
       const { rows, cols } = calculateGrid(level.pieces, aspectRatio)
       
-      // Criação do canvas em memória para recortar as peças
+      // Criação do canvas em memória
       const canvas = document.createElement('canvas')
       canvas.width = 800
-      canvas.height = 600 // Base de referência, ajustável se necessário
+      canvas.height = 600
       
       const pieceWidth = canvas.width / cols
       const pieceHeight = canvas.height / rows
@@ -163,7 +164,7 @@ export default function App() {
             correctCol: col,
             currentRow: row,
             currentCol: col,
-            image: pieceCanvas.toDataURL('image/jpeg', 0.8),
+            image: pieceCanvas.toDataURL('image/jpeg', 0.8), // A imagem cortada está AQUI
             isPlaced: false
           })
         }
@@ -172,7 +173,7 @@ export default function App() {
       // Embaralhar
       const shuffled = [...newPieces].sort(() => Math.random() - 0.5)
       
-      // Atribuir posições no grid baseadas na ordem embaralhada
+      // Define posições iniciais
       const piecesWithPos = shuffled.map((p, index) => ({
         ...p,
         currentRow: Math.floor(index / cols),
@@ -224,7 +225,6 @@ export default function App() {
         return p
       })
       
-      // Verifica vitória
       const allCorrect = newPieces.every(p => p.isPlaced)
       if (allCorrect) {
         handleVictory()
@@ -236,7 +236,6 @@ export default function App() {
   const handleDragStart = (e, piece) => {
     if (piece.isPlaced || swapMode !== 'drag') return
     e.dataTransfer.effectAllowed = 'move'
-    // Hack para mobile drag
     try {
         e.dataTransfer.setData('text/plain', JSON.stringify(piece))
     } catch(err) { /* ignore */ }
@@ -262,7 +261,7 @@ export default function App() {
     setTimeout(() => setScreen('victory'), 1000)
   }
 
-  // ===== TELAS (Render Functions) =====
+  // ===== TELAS (FUNÇÕES DE RENDERIZAÇÃO) =====
 
   const WelcomeScreen = () => (
     <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'}}>
@@ -539,7 +538,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* Seletor de Modo */}
           <div className="bg-white rounded-2xl p-4 mb-4">
             <p className="text-sm font-bold mb-3 text-center text-gray-700">Modo de Jogo</p>
             <div className="flex gap-2">
@@ -552,7 +550,8 @@ export default function App() {
     )
   }
 
-  // Função que renderiza a tela do jogo (agora parte do App, não um componente interno)
+  // === A CORREÇÃO PRINCIPAL ESTÁ AQUI ===
+  // Transformado em FUNÇÃO DE RENDERIZAÇÃO (não componente)
   const renderGameScreen = () => {
     const level = LEVELS[currentLevel]
     const { rows, cols } = calculateGrid(level.pieces, imageAspectRatio)
@@ -594,6 +593,7 @@ export default function App() {
               className="grid gap-1 sm:gap-2 bg-white/20 backdrop-blur p-2 sm:p-4 rounded-3xl mb-4 sm:mb-6 mx-auto"
               style={{
                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                gridTemplateRows: `repeat(${rows}, 1fr)`, // Adicionado para garantir o layout
                 aspectRatio: imageAspectRatio,
                 width: 'min(90vw, 600px)'
               }}
@@ -601,16 +601,24 @@ export default function App() {
               {pieces.map((piece) => (
                 <div
                   key={piece.id}
-                  draggable={false}
+                  draggable={!piece.isPlaced && swapMode === 'drag'}
+                  onDragStart={(e) => handleDragStart(e, piece)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDrop(e, piece)}
                   onClick={() => handlePieceClick(piece)}
                   className={`puzzle-piece-3d relative rounded-lg overflow-hidden bg-white shadow-lg cursor-pointer ${
-                    selectedPiece?.id === piece.id ? 'ring-4 ring-yellow-400 z-10' : ''
+                    selectedPiece?.id === piece.id ? 'ring-4 ring-yellow-400 z-10 scale-95' : ''
                   } ${piece.isPlaced ? 'ring-4 ring-green-400' : ''}`}
                   style={{
-                    aspectRatio: `${1/calculateGrid(level.pieces, imageAspectRatio).gridRatio}`,
+                    // CORREÇÃO VISUAL: Usa a imagem já cortada e estilo simples
                     backgroundImage: `url(${piece.image})`,
                     backgroundSize: 'cover',
-                    opacity: piece.isPlaced ? 1 : (selectedPiece?.id === piece.id ? 0.7 : 1)
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    opacity: piece.isPlaced ? 1 : (selectedPiece?.id === piece.id ? 0.7 : 1),
+                    // Mantém a peça no grid correto
+                    gridRow: piece.currentRow + 1,
+                    gridColumn: piece.currentCol + 1
                   }}
                 >
                   {piece.isPlaced && (
@@ -681,7 +689,7 @@ export default function App() {
       {screen === 'register' && <RegisterScreen />}
       {screen === 'upload' && <UploadScreen />}
       {screen === 'levels' && <LevelsScreen />}
-      {screen === 'game' && renderGameScreen()}
+      {screen === 'game' && renderGameScreen()} {/* Chamada como função, não componente */}
       {screen === 'victory' && <VictoryScreen />}
     </>
   )
