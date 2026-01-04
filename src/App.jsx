@@ -18,18 +18,18 @@ const LEVELS = [
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-// 10 Imagens filtradas APENAS por: Toys, Puppy, Kitten
+// 10 Imagens filtradas pelas 5 keywords solicitadas (Ciclo 2x)
 const RANDOM_IMAGES = [
-  'https://loremflickr.com/800/800/toys?random=1',
-  'https://loremflickr.com/800/800/puppy?random=2',
-  'https://loremflickr.com/800/800/kitten?random=3',
-  'https://loremflickr.com/800/800/toys?random=4',
-  'https://loremflickr.com/800/800/puppy?random=5',
-  'https://loremflickr.com/800/800/kitten?random=6',
-  'https://loremflickr.com/800/800/toys?random=7',
-  'https://loremflickr.com/800/800/puppy?random=8',
-  'https://loremflickr.com/800/800/kitten?random=9',
-  'https://loremflickr.com/800/800/toys?random=10'
+  'https://loremflickr.com/800/800/toys?random=1',      // 1. Toys
+  'https://loremflickr.com/800/800/puppy?random=2',     // 2. Puppy
+  'https://loremflickr.com/800/800/kitten?random=3',    // 3. Kitten
+  'https://loremflickr.com/800/800/alphabet?random=4',  // 4. Alphabet
+  'https://loremflickr.com/800/800/numbers?random=5',   // 5. Numbers
+  'https://loremflickr.com/800/800/toys?random=6',      // 6. Toys (Repete)
+  'https://loremflickr.com/800/800/puppy?random=7',     // 7. Puppy (Repete)
+  'https://loremflickr.com/800/800/kitten?random=8',    // 8. Kitten (Repete)
+  'https://loremflickr.com/800/800/alphabet?random=9',  // 9. Alphabet (Repete)
+  'https://loremflickr.com/800/800/numbers?random=10'   // 10. Numbers (Repete)
 ]
 
 // Áudios em Base64
@@ -680,7 +680,6 @@ export default function App() {
           <div className="flex items-center justify-between mb-4 sm:mb-6">
             <button aria-label="Voltar aos Níveis" onClick={() => setScreen('levels')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center">
-              {/* INDICADOR DE NÍVEL ADICIONADO AQUI */}
               <h2 className="text-xl sm:text-2xl font-black text-purple-600 mb-1">NÍVEL {level.level}</h2>
               <div className="inline-flex items-center gap-1 bg-gray-100 px-3 py-1 rounded-full">
                  <span className="text-xs font-semibold text-gray-500">Peças:</span>
