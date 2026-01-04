@@ -582,7 +582,11 @@ export default function App() {
 
     const initializePuzzle = () => {
       const image = uploadedImages[currentLevel]
-      if (!image || isShuffling) return
+      if (!image) {
+        setIsShuffling(false)
+        return
+      }
+      if (isShuffling) return
 
       setIsShuffling(true)
       const canvas = canvasRef.current
@@ -652,6 +656,16 @@ export default function App() {
       
       img.onerror = () => {
         setIsShuffling(false)
+      }
+      
+      // Timeout de segurança para evitar travamento
+      const timeout = setTimeout(() => {
+        setIsShuffling(false)
+      }, 5000)
+      
+      img.onload = () => {
+        clearTimeout(timeout)
+        // ... existing code
       }
       
       img.src = image.src
