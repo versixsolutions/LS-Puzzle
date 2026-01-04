@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import confetti from 'canvas-confetti'
-import heic2any from 'heic2any'
+// REMOVIDO: import confetti e heic2any (agora são carregados via Lazy Loading)
+
+// ===== CONSTANTES E CONFIGURAÇÕES =====
 
 // NÍVEIS: Grids Quadrados (2x2 até 7x7)
 const LEVELS = [
@@ -14,7 +15,6 @@ const LEVELS = [
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-// URLs ajustadas para imagens quadradas
 const RANDOM_IMAGES = [
   'https://picsum.photos/800/800?random=1',
   'https://picsum.photos/800/800?random=2',
@@ -23,6 +23,13 @@ const RANDOM_IMAGES = [
   'https://picsum.photos/800/800?random=5',
   'https://picsum.photos/800/800?random=6'
 ]
+
+// Base64 movidos para fora para não recriar strings gigantes na memória
+const AUDIO_SRC = {
+  BEEP: 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=',
+  MUSIC: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuByO/aiTYIGGS57OihUBELTKXh8LJnHgU2jdT0yoAsBSF0wu/glEILElyx6OyqWBUIRJzd87ppIgYugcXu24k2Bxdju+vooVETDE6k4fK0aR8FNoLS9ciALgcfdcLu35VFDRFYrOfulV8YCkCY2vO9cyMGK37C7tuLOQkaaLno7KFRGAxMouHz',
+  APPLAUSE: 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoSGiImIh4aFg4GAfn18e3l4dnV0cnFvbm1samspaWhmbGBhYmNkZWZnaGlqbG1ub3Bxc3R2d3l6fH1/gIKEhYeIiYqLjI2Oj5CRkpOUlJWWl5iZmpqbm5yam5qbmpqampmYl5aVlJOSkZCPjo2Mi4qJiIeGhYSDgoF/fn18enl3dnRzcG9ubGtpaWhnam5wcnR2eHp8foCChIaIi42PkpSXmp2gpa+9ys/U2Nzf4eTn6uzv8fT2+fv9/v/+/fv5'
+}
 
 export default function App() {
   const [screen, setScreen] = useState('welcome')
@@ -39,50 +46,77 @@ export default function App() {
   const [imageAspectRatio, setImageAspectRatio] = useState(1) // Fixo em 1:1
   const [isShuffling, setIsShuffling] = useState(false)
   
-  // Refs
-  const bgMusicRef = useRef(null)
-  const applauseRef = useRef(null)
+  // Detecção de Orientação (P1)
+  const [isWrongOrientation, setIsWrongOrientation] = useState(false)
+  
+  // Refs de Áudio Otimizados (P2)
+  const bgMusicRef = useRef(new Audio(AUDIO_SRC.MUSIC))
+  const applauseRef = useRef(new Audio(AUDIO_SRC.APPLAUSE))
+  const beepRef = useRef(new Audio(AUDIO_SRC.BEEP))
   const touchStartRef = useRef(null) 
 
-  // ===== ÁUDIOS =====
-  useEffect(() => {
-    const bgMusic = new Audio()
-    bgMusic.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuByO/aiTYIGGS57OihUBELTKXh8LJnHgU2jdT0yoAsBSF0wu/glEILElyx6OyqWBUIRJzd87ppIgYugcXu24k2Bxdju+vooVETDE6k4fK0aR8FNoLS9ciALgcfdcLu35VFDRFYrOfulV8YCkCY2vO9cyMGK37C7tuLOQkaaLno7KFRGAxMouHz'
-    bgMusic.loop = true
-    bgMusic.volume = 0.1
-    bgMusicRef.current = bgMusic
+  // ===== EFEITOS DE INICIALIZAÇÃO E UX =====
 
-    const applause = new Audio()
-    applause.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoSGiImIh4aFg4GAfn18e3l4dnV0cnFvbm1samspaWhmbGBhYmNkZWZnaGlqbG1ub3Bxc3R2d3l6fH1/gIKEhYeIiYqLjI2Oj5CRkpOUlJWWl5iZmpqbm5yam5qbmpqampmYl5aVlJOSkZCPjo2Mi4qJiIeGhYSDgoF/fn18enl3dnRzcG9ubGtpaWhnam5wcnR2eHp8foCChIaIi42PkpSXmp2gpa+9ys/U2Nzf4eTn6uzv8fT2+fv9/v/+/fv5'
-    applause.volume = 0.3
-    applauseRef.current = applause
+  // Monitorar orientação da tela (P1)
+  useEffect(() => {
+    const checkOrientation = () => {
+      // Se a altura for muito pequena (celular deitado), avisa
+      // Consideramos "muito pequena" menos de 500px para o jogo funcionar bem
+      const isLandscapeMobile = window.innerWidth > window.innerHeight && window.innerHeight < 500
+      setIsWrongOrientation(isLandscapeMobile)
+    }
+    
+    window.addEventListener('resize', checkOrientation)
+    checkOrientation() // Checagem inicial
+    
+    return () => window.removeEventListener('resize', checkOrientation)
+  }, [])
+
+  // Configuração de Áudio
+  useEffect(() => {
+    // Configurações iniciais
+    bgMusicRef.current.loop = true
+    bgMusicRef.current.volume = 0.1
+    applauseRef.current.volume = 0.3
+    beepRef.current.volume = 0.2
 
     return () => {
-      bgMusicRef.current?.pause()
-      applauseRef.current?.pause()
+      bgMusicRef.current.pause()
+      applauseRef.current.pause()
     }
   }, [])
 
+  // Controle de Música de Fundo
   useEffect(() => {
-    if (soundEnabled && screen === 'welcome' && bgMusicRef.current) {
+    if (soundEnabled && screen === 'welcome') {
       bgMusicRef.current.play().catch(() => {})
-    } else if (bgMusicRef.current) {
+    } else {
       bgMusicRef.current.pause()
     }
   }, [screen, soundEnabled])
 
+  // Funções de Play Helper (Evita criar new Audio toda vez)
   const playBeep = () => {
     if (!soundEnabled) return
-    const beep = new Audio(`data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=`)
-    beep.volume = 0.2
-    beep.play().catch(() => {})
+    // Clone node permite tocar sons sobrepostos rapidamente se necessário, 
+    // mas para beep simples, resetar o tempo é melhor para performance mobile
+    if (beepRef.current.paused) {
+        beepRef.current.play().catch(() => {})
+    } else {
+        beepRef.current.currentTime = 0
+    }
   }
 
   const playApplause = () => {
-    if (soundEnabled && applauseRef.current) {
+    if (soundEnabled) {
       applauseRef.current.currentTime = 0
       applauseRef.current.play().catch(() => {})
     }
+  }
+
+  // Tátil (Haptics) (P2)
+  const vibrate = () => {
+    if (navigator.vibrate) navigator.vibrate(50); // Vibração curta de 50ms
   }
 
   // ===== LÓGICA DO JOGO =====
@@ -128,14 +162,12 @@ export default function App() {
     img.crossOrigin = 'anonymous'
     
     img.onload = () => {
-      // Força proporção 1:1 para grid quadrado
       const targetAspectRatio = 1
       setImageAspectRatio(targetAspectRatio)
       
       const level = LEVELS[currentLevel]
       const { rows, cols } = calculateGrid(level.pieces, targetAspectRatio)
       
-      // Cria Canvas Quadrado
       const canvas = document.createElement('canvas')
       canvas.width = 800
       canvas.height = 800 
@@ -144,7 +176,6 @@ export default function App() {
       const pieceHeight = canvas.height / rows
       const newPieces = []
 
-      // Cálculos para Crop Centralizado (1:1)
       const minSize = Math.min(img.width, img.height)
       const sourceX = (img.width - minSize) / 2
       const sourceY = (img.height - minSize) / 2
@@ -158,8 +189,8 @@ export default function App() {
           
           pieceCtx.drawImage(
             img,
-            sourceX + (col * minSize) / cols, sourceY + (row * minSize) / rows, // Source X, Y (Crop)
-            minSize / cols, minSize / rows, // Source W, H
+            sourceX + (col * minSize) / cols, sourceY + (row * minSize) / rows,
+            minSize / cols, minSize / rows,
             0, 0,
             pieceWidth, pieceHeight
           )
@@ -223,6 +254,9 @@ export default function App() {
       }
       return newPieces
     })
+    
+    // Feedback de Sucesso (P2)
+    vibrate()
   }
 
   // --- HANDLERS (MOUSE & TOUCH) ---
@@ -292,7 +326,11 @@ export default function App() {
     }
   }
 
-  const handleVictory = () => {
+  // Lazy Loading da Vitória (P3)
+  const handleVictory = async () => {
+    // Importação dinâmica para economizar payload inicial
+    const confetti = (await import('canvas-confetti')).default
+    
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
     playApplause()
     setLevelProgress(prev => {
@@ -304,6 +342,15 @@ export default function App() {
   }
 
   // ===== TELAS =====
+
+  // Novo componente para aviso de orientação (P1)
+  const RotateDevicePrompt = () => (
+    <div className="fixed inset-0 bg-blue-600 z-[100] flex flex-col items-center justify-center text-white p-6 text-center">
+      <div className="text-6xl mb-4 animate-bounce">📱</div>
+      <h2 className="text-2xl font-bold mb-2">Por favor, gire o celular</h2>
+      <p>O jogo funciona melhor com o celular em pé!</p>
+    </div>
+  )
 
   const WelcomeScreen = () => (
     <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'}}>
@@ -381,6 +428,7 @@ export default function App() {
   }
 
   const UploadScreen = () => {
+    // Lazy Loading do heic2any (P3)
     const handleImageUpload = async (e) => {
       const files = Array.from(e.target.files)
       if (uploadedImages.length + files.length > 6) {
@@ -392,7 +440,9 @@ export default function App() {
         files.map(async (file) => {
           try {
             let processedFile = file
+            // Verifica se é HEIC e carrega a lib dinamicamente
             if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+              const heic2any = (await import('heic2any')).default
               const convertedBlob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })
               processedFile = new File([convertedBlob], file.name.replace(/\.heic$/i, '.jpg'), { type: 'image/jpeg' })
             }
@@ -430,7 +480,6 @@ export default function App() {
             img.crossOrigin = 'anonymous'
             img.onload = () => {
               const canvas = document.createElement('canvas')
-              // Gerar quadrado 800x800
               canvas.width = 800
               canvas.height = 800
               const ctx = canvas.getContext('2d')
@@ -665,15 +714,20 @@ export default function App() {
   }
 
   const VictoryScreen = () => {
+    // Efeito para carregar Confetti dinamicamente
     useEffect(() => {
-      const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#a8e6cf']
-      const end = Date.now() + 3000
-      const frame = () => {
-        confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: colors })
-        confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: colors })
-        if (Date.now() < end) requestAnimationFrame(frame)
+      const runConfetti = async () => {
+        const confetti = (await import('canvas-confetti')).default
+        const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#a8e6cf']
+        const end = Date.now() + 3000
+        const frame = () => {
+          confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: colors })
+          confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: colors })
+          if (Date.now() < end) requestAnimationFrame(frame)
+        }
+        frame()
       }
-      frame()
+      runConfetti()
     }, [])
 
     return (
@@ -704,6 +758,7 @@ export default function App() {
 
   return (
     <>
+      {isWrongOrientation && <RotateDevicePrompt />}
       {screen === 'welcome' && <WelcomeScreen />}
       {screen === 'register' && <RegisterScreen />}
       {screen === 'upload' && <UploadScreen />}
