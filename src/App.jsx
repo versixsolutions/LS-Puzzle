@@ -2,34 +2,34 @@ import { useState, useEffect, useRef } from 'react'
 
 // ===== CONSTANTES E CONFIGURAÇÕES =====
 
-// NÍVEIS: 10 Fases (Conforme solicitado)
+// NÍVEIS: 10 Fases (Progressão Lenta e Gradual)
 const LEVELS = [
   { level: 1, pieces: 4, stars: 0 },  // 2x2
   { level: 2, pieces: 4, stars: 0 },  // 2x2
-  { level: 3, pieces: 9, stars: 0 },  // 3x3
+  { level: 3, pieces: 4, stars: 0 },  // 2x2
   { level: 4, pieces: 9, stars: 0 },  // 3x3
-  { level: 5, pieces: 16, stars: 0 }, // 4x4
-  { level: 6, pieces: 16, stars: 0 }, // 4x4
-  { level: 7, pieces: 25, stars: 0 }, // 5x5
-  { level: 8, pieces: 25, stars: 0 }, // 5x5
-  { level: 9, pieces: 36, stars: 0 }, // 6x6
-  { level: 10, pieces: 36, stars: 0 } // 6x6
+  { level: 5, pieces: 9, stars: 0 },  // 3x3
+  { level: 6, pieces: 9, stars: 0 },  // 3x3
+  { level: 7, pieces: 16, stars: 0 }, // 4x4
+  { level: 8, pieces: 16, stars: 0 }, // 4x4
+  { level: 9, pieces: 16, stars: 0 }, // 4x4
+  { level: 10, pieces: 25, stars: 0 } // 5x5
 ]
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-// 10 Imagens Aleatórias para cobrir os 10 níveis
+// 10 Imagens "Lúdicas Infantis" (Usando palavras-chave específicas)
 const RANDOM_IMAGES = [
-  'https://picsum.photos/800/800?random=1',
-  'https://picsum.photos/800/800?random=2',
-  'https://picsum.photos/800/800?random=3',
-  'https://picsum.photos/800/800?random=4',
-  'https://picsum.photos/800/800?random=5',
-  'https://picsum.photos/800/800?random=6',
-  'https://picsum.photos/800/800?random=7',
-  'https://picsum.photos/800/800?random=8',
-  'https://picsum.photos/800/800?random=9',
-  'https://picsum.photos/800/800?random=10'
+  'https://loremflickr.com/800/800/toys?random=1',      // Brinquedos
+  'https://loremflickr.com/800/800/kitten?random=2',    // Gatinho
+  'https://loremflickr.com/800/800/puppy?random=3',     // Cachorrinho
+  'https://loremflickr.com/800/800/cartoon?random=4',   // Desenho
+  'https://loremflickr.com/800/800/lego?random=5',      // Lego
+  'https://loremflickr.com/800/800/park?random=6',      // Parque
+  'https://loremflickr.com/800/800/candy?random=7',     // Doces
+  'https://loremflickr.com/800/800/animals?random=8',   // Animais variados
+  'https://loremflickr.com/800/800/robot?random=9',     // Robôs
+  'https://loremflickr.com/800/800/disney?random=10'    // Tema Disney/Personagens
 ]
 
 // Áudios em Base64 (Otimizado)
@@ -421,6 +421,7 @@ export default function App() {
   const UploadScreen = () => {
     const handleImageUpload = async (e) => {
       const files = Array.from(e.target.files)
+      // LIMITE AUMENTADO PARA 10
       if (uploadedImages.length + files.length > 10) {
         alert('Máximo 10 fotos!')
         return
@@ -463,6 +464,7 @@ export default function App() {
 
     const generateRandomImages = async () => {
       const randomImages = await Promise.all(
+        // LIMITE AUMENTADO PARA 10
         RANDOM_IMAGES.slice(0, 10 - uploadedImages.length).map((url, idx) => 
           new Promise((resolve) => {
             const img = new Image()
@@ -512,11 +514,14 @@ export default function App() {
               <button key={format} className="px-3 sm:px-4 py-1 sm:py-2 bg-gray-100 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">{format}</button>
             ))}
           </div>
+          
           {uploadedImages.length < 10 && (
             <button onClick={generateRandomImages} className="w-full mb-4 py-2 sm:py-3 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-2xl text-sm sm:text-base font-bold hover:scale-105 transition">
               ✨ Gerar Foto Aleatória ({10 - uploadedImages.length} restantes)
             </button>
           )}
+          
+          {/* GRID AJUSTADO PARA 10 FOTOS */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
             {[...Array(10)].map((_, index) => (
               <div key={index} className="photo-slot relative aspect-square">
