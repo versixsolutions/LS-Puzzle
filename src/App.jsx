@@ -2,25 +2,26 @@ import { useState, useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import heic2any from 'heic2any'
 
-// NÍVEIS: 4 até 16 peças
+// NÍVEIS: Grids Quadrados (2x2 até 7x7)
 const LEVELS = [
-  { level: 1, pieces: 4, stars: 0 },
-  { level: 2, pieces: 6, stars: 0 },
-  { level: 3, pieces: 9, stars: 0 },
-  { level: 4, pieces: 12, stars: 0 },
-  { level: 5, pieces: 15, stars: 0 },
-  { level: 6, pieces: 16, stars: 0 }
+  { level: 1, pieces: 4, stars: 0 },  // 2x2
+  { level: 2, pieces: 9, stars: 0 },  // 3x3
+  { level: 3, pieces: 16, stars: 0 }, // 4x4
+  { level: 4, pieces: 25, stars: 0 }, // 5x5
+  { level: 5, pieces: 36, stars: 0 }, // 6x6
+  { level: 6, pieces: 49, stars: 0 }  // 7x7
 ]
 
 const ALPHABET = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
+// URLs ajustadas para imagens quadradas
 const RANDOM_IMAGES = [
-  'https://picsum.photos/800/600?random=1',
-  'https://picsum.photos/800/600?random=2',
-  'https://picsum.photos/800/600?random=3',
-  'https://picsum.photos/800/600?random=4',
-  'https://picsum.photos/800/600?random=5',
-  'https://picsum.photos/800/600?random=6'
+  'https://picsum.photos/800/800?random=1',
+  'https://picsum.photos/800/800?random=2',
+  'https://picsum.photos/800/800?random=3',
+  'https://picsum.photos/800/800?random=4',
+  'https://picsum.photos/800/800?random=5',
+  'https://picsum.photos/800/800?random=6'
 ]
 
 export default function App() {
@@ -35,17 +36,17 @@ export default function App() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [showHint, setShowHint] = useState(false)
   const [swapMode, setSwapMode] = useState('drag')
-  const [imageAspectRatio, setImageAspectRatio] = useState(4/3)
+  const [imageAspectRatio, setImageAspectRatio] = useState(1) // Fixo em 1:1
   const [isShuffling, setIsShuffling] = useState(false)
   
   // Refs
   const bgMusicRef = useRef(null)
   const applauseRef = useRef(null)
+  const touchStartRef = useRef(null) 
 
   // ===== ÁUDIOS =====
   useEffect(() => {
     const bgMusic = new Audio()
-    // Shortened base64 placeholder - use your full string
     bgMusic.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuByO/aiTYIGGS57OihUBELTKXh8LJnHgU2jdT0yoAsBSF0wu/glEILElyx6OyqWBUIRJzd87ppIgYugcXu24k2Bxdju+vooVETDE6k4fK0aR8FNoLS9ciALgcfdcLu35VFDRFYrOfulV8YCkCY2vO9cyMGK37C7tuLOQkaaLno7KFRGAxMouHz'
     bgMusic.loop = true
     bgMusic.volume = 0.1
@@ -106,16 +107,15 @@ export default function App() {
     return { rows: bestRows, cols: bestCols }
   }
 
-  // Inicializa o jogo APENAS quando a tela muda para 'game'
   useEffect(() => {
     if (screen === 'game') {
       initializePuzzle()
     } else {
-      // Limpa estado ao sair
       setIsShuffling(false)
       setPieces([])
       setSelectedPiece(null)
       setShowHint(false)
+      touchStartRef.current = null
     }
   }, [screen, currentLevel])
 
@@ -128,20 +128,26 @@ export default function App() {
     img.crossOrigin = 'anonymous'
     
     img.onload = () => {
-      const aspectRatio = image.aspectRatio || (img.width / img.height)
-      setImageAspectRatio(aspectRatio)
+      // Força proporção 1:1 para grid quadrado
+      const targetAspectRatio = 1
+      setImageAspectRatio(targetAspectRatio)
       
       const level = LEVELS[currentLevel]
-      const { rows, cols } = calculateGrid(level.pieces, aspectRatio)
+      const { rows, cols } = calculateGrid(level.pieces, targetAspectRatio)
       
-      // Criação do canvas em memória
+      // Cria Canvas Quadrado
       const canvas = document.createElement('canvas')
       canvas.width = 800
-      canvas.height = 600
+      canvas.height = 800 
       
       const pieceWidth = canvas.width / cols
       const pieceHeight = canvas.height / rows
       const newPieces = []
+
+      // Cálculos para Crop Centralizado (1:1)
+      const minSize = Math.min(img.width, img.height)
+      const sourceX = (img.width - minSize) / 2
+      const sourceY = (img.height - minSize) / 2
       
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
@@ -152,8 +158,8 @@ export default function App() {
           
           pieceCtx.drawImage(
             img,
-            (col * img.width) / cols, (row * img.height) / rows,
-            img.width / cols, img.height / rows,
+            sourceX + (col * minSize) / cols, sourceY + (row * minSize) / rows, // Source X, Y (Crop)
+            minSize / cols, minSize / rows, // Source W, H
             0, 0,
             pieceWidth, pieceHeight
           )
@@ -164,16 +170,14 @@ export default function App() {
             correctCol: col,
             currentRow: row,
             currentCol: col,
-            image: pieceCanvas.toDataURL('image/jpeg', 0.8), // A imagem cortada está AQUI
+            image: pieceCanvas.toDataURL('image/jpeg', 0.8),
             isPlaced: false
           })
         }
       }
       
-      // Embaralhar
       const shuffled = [...newPieces].sort(() => Math.random() - 0.5)
       
-      // Define posições iniciais
       const piecesWithPos = shuffled.map((p, index) => ({
         ...p,
         currentRow: Math.floor(index / cols),
@@ -192,21 +196,9 @@ export default function App() {
     img.src = image.src
   }
 
-  const handlePieceClick = (piece) => {
-    if (piece.isPlaced) return
-    playBeep()
-    
-    if (swapMode === 'click') {
-      if (!selectedPiece) {
-        setSelectedPiece(piece)
-      } else {
-        swapPieces(selectedPiece, piece)
-        setSelectedPiece(null)
-      }
-    }
-  }
-
   const swapPieces = (pieceA, pieceB) => {
+    if(!pieceA || !pieceB || pieceA.id === pieceB.id) return
+    
     const tempRow = pieceA.currentRow
     const tempCol = pieceA.currentCol
     
@@ -233,11 +225,12 @@ export default function App() {
     })
   }
 
+  // --- HANDLERS (MOUSE & TOUCH) ---
   const handleDragStart = (e, piece) => {
     if (piece.isPlaced || swapMode !== 'drag') return
     e.dataTransfer.effectAllowed = 'move'
     try {
-        e.dataTransfer.setData('text/plain', JSON.stringify(piece))
+        e.dataTransfer.setData('text/plain', piece.id.toString())
     } catch(err) { /* ignore */ }
     setSelectedPiece(piece)
     playBeep()
@@ -245,9 +238,58 @@ export default function App() {
 
   const handleDrop = (e, targetPiece) => {
     e.preventDefault()
-    if (!selectedPiece || selectedPiece.id === targetPiece.id || swapMode !== 'drag') return
-    swapPieces(selectedPiece, targetPiece)
+    if (swapMode !== 'drag') return
+    let sourcePiece = selectedPiece
+    if (!sourcePiece) {
+       const sourceId = parseInt(e.dataTransfer.getData('text/plain'))
+       sourcePiece = pieces.find(p => p.id === sourceId)
+    }
+    if (sourcePiece && sourcePiece.id !== targetPiece.id) {
+        swapPieces(sourcePiece, targetPiece)
+    }
     setSelectedPiece(null)
+  }
+
+  const handleTouchStart = (e, piece) => {
+    if (piece.isPlaced || swapMode !== 'drag') return
+    touchStartRef.current = piece
+    setSelectedPiece(piece)
+    playBeep()
+  }
+
+  const handleTouchMove = (e) => {
+     if (swapMode !== 'drag' || !touchStartRef.current) return
+     if(e.cancelable) e.preventDefault()
+  }
+
+  const handleTouchEnd = (e) => {
+    if (swapMode !== 'drag' || !touchStartRef.current) return
+    const touch = e.changedTouches[0]
+    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY)
+    const targetDiv = targetElement?.closest('[data-piece-id]')
+    
+    if (targetDiv) {
+        const targetId = parseInt(targetDiv.getAttribute('data-piece-id'))
+        const targetPiece = pieces.find(p => p.id === targetId)
+        if (targetPiece) {
+            swapPieces(touchStartRef.current, targetPiece)
+        }
+    }
+    touchStartRef.current = null
+    setSelectedPiece(null)
+  }
+
+  const handlePieceClick = (piece) => {
+    if (piece.isPlaced) return
+    playBeep()
+    if (swapMode === 'click') {
+      if (!selectedPiece) {
+        setSelectedPiece(piece)
+      } else {
+        swapPieces(selectedPiece, piece)
+        setSelectedPiece(null)
+      }
+    }
   }
 
   const handleVictory = () => {
@@ -261,7 +303,7 @@ export default function App() {
     setTimeout(() => setScreen('victory'), 1000)
   }
 
-  // ===== TELAS (FUNÇÕES DE RENDERIZAÇÃO) =====
+  // ===== TELAS =====
 
   const WelcomeScreen = () => (
     <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'}}>
@@ -272,14 +314,11 @@ export default function App() {
             <span className="text-xl sm:text-2xl">{soundEnabled ? '🎵' : '🔇'}</span>
           </button>
         </div>
-        
         <h1 className="text-3xl sm:text-4xl font-black mb-2">Foto<span className="text-pink-400">Puzzle</span></h1>
         <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">Monte sua diversão!</p>
-        
         <div className="mascot mb-6 sm:mb-8 bg-gradient-to-b from-blue-200 to-blue-300 rounded-3xl p-6 sm:p-8">
           <div className="text-6xl sm:text-8xl">🧩</div>
         </div>
-        
         <button onClick={() => { playBeep(); setScreen('register') }} className="btn-primary w-full text-base sm:text-lg">▶️ JOGAR</button>
         <p className="text-xs sm:text-sm text-gray-400 mt-4">Toque para começar</p>
       </div>
@@ -310,7 +349,6 @@ export default function App() {
             <h2 className="text-lg sm:text-2xl font-bold flex-1 text-center">Quem é você?</h2>
             <button className="icon-btn bg-cyan-100"><span className="text-xl sm:text-2xl">ℹ️</span></button>
           </div>
-
           <div className="flex flex-col items-center mb-6">
             <div className="cursor-pointer mb-4" onClick={() => fileInputRef.current?.click()} style={{
               width: 'min(200px, 40vw)', height: 'min(200px, 40vw)', borderRadius: '50%', border: '6px solid #f6d365',
@@ -320,18 +358,15 @@ export default function App() {
               {playerAvatar ? (<img src={playerAvatar} alt="Avatar" className="w-full h-full object-cover" />) : (<span className="text-4xl sm:text-6xl">👤</span>)}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
             </div>
-            
             <div className="flex gap-3 mb-4">
               <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-cyan-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">📷</button>
               <button onClick={() => fileInputRef.current?.click()} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-orange-400 flex items-center justify-center text-white shadow-lg hover:scale-110 transition">🖼️</button>
             </div>
-
             <p className="text-xs sm:text-sm text-gray-500 mb-2">Toque para escolher</p>
             <div className="bg-white border-2 border-gray-200 rounded-2xl px-4 sm:px-6 py-2 sm:py-3 min-w-[180px] sm:min-w-[200px] text-center">
               <span className="text-xl sm:text-2xl font-bold">{tempName || '_____'}</span>
             </div>
           </div>
-
           <div className="grid grid-cols-6 gap-1 sm:gap-2 mb-4 sm:mb-6">
             {ALPHABET.map(letter => (
               <button key={letter} onClick={() => { if (tempName.length < 10) { setTempName(tempName + letter); playBeep() }}} className="keyboard-btn text-sm sm:text-lg">{letter}</button>
@@ -339,7 +374,6 @@ export default function App() {
             <button onClick={() => { setTempName(tempName.slice(0, -1)); playBeep() }} className="keyboard-btn col-span-2 bg-red-50 text-red-500 text-sm sm:text-base">⌫</button>
             <button onClick={() => { setTempName(''); playBeep() }} className="keyboard-btn col-span-2 bg-gray-50 text-sm sm:text-base">🔄</button>
           </div>
-
           <button onClick={() => { if (tempName.trim()) { setPlayerName(tempName); playBeep(); setScreen('upload') }}} className="btn-yellow w-full text-base sm:text-lg font-bold">JOGAR AGORA! ▶️</button>
         </div>
       </div>
@@ -396,17 +430,18 @@ export default function App() {
             img.crossOrigin = 'anonymous'
             img.onload = () => {
               const canvas = document.createElement('canvas')
+              // Gerar quadrado 800x800
               canvas.width = 800
-              canvas.height = 600
+              canvas.height = 800
               const ctx = canvas.getContext('2d')
-              ctx.drawImage(img, 0, 0, 800, 600)
+              ctx.drawImage(img, 0, 0, 800, 800)
               resolve({
                 src: canvas.toDataURL('image/jpeg'),
                 name: `random-${idx + 1}.jpg`,
                 type: 'JPG',
                 width: 800,
-                height: 600,
-                aspectRatio: 800 / 600
+                height: 800,
+                aspectRatio: 1
               })
             }
             img.onerror = () => resolve(null)
@@ -432,28 +467,24 @@ export default function App() {
               <h2 className="text-lg sm:text-xl font-bold">Personalizar Quebra-Cabeça</h2>
             </div>
           </div>
-
           <h3 className="text-xl sm:text-2xl font-bold mb-2 text-center">Escolha suas Fotos</h3>
           <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6 text-center">Adicione fotos do seu dispositivo ou gere imagens aleatórias</p>
-
           <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
             {['JPG', 'PNG', 'JPEG', 'WEBP', 'HEIC', 'AVIF'].map(format => (
               <button key={format} className="px-3 sm:px-4 py-1 sm:py-2 bg-gray-100 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap">{format}</button>
             ))}
           </div>
-
           {uploadedImages.length < 6 && (
             <button onClick={generateRandomImages} className="w-full mb-4 py-2 sm:py-3 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-2xl text-sm sm:text-base font-bold hover:scale-105 transition">
               ✨ Gerar Foto Aleatória ({6 - uploadedImages.length} restantes)
             </button>
           )}
-
           <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
             {[...Array(6)].map((_, index) => (
-              <div key={index} className="photo-slot relative">
+              <div key={index} className="photo-slot relative aspect-square">
                 {uploadedImages[index] ? (
                   <>
-                    <img src={uploadedImages[index].src} alt={`Foto ${index + 1}`} />
+                    <img src={uploadedImages[index].src} alt={`Foto ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
                     <div className="badge">{uploadedImages[index].type.slice(0,3)}</div>
                     <button onClick={() => removeImage(index)} className="absolute top-2 right-2 w-6 h-6 sm:w-8 sm:h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 text-xs sm:text-base">✕</button>
                   </>
@@ -467,7 +498,6 @@ export default function App() {
               </div>
             ))}
           </div>
-
           {uploadedImages.length === 6 && (
             <button onClick={() => { playBeep(); setScreen('levels') }} className="btn-primary w-full text-base sm:text-lg">🔒 Salvar e Jogar</button>
           )}
@@ -486,7 +516,6 @@ export default function App() {
             <button onClick={() => setScreen('upload')} className="icon-btn"><span className="text-xl sm:text-2xl">←</span></button>
             <div className="flex-1 text-center"><h2 className="text-lg sm:text-xl font-bold">Mapa de Aventura</h2></div>
           </div>
-
           <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
             <div style={{
               width: 'min(80px, 15vw)', height: 'min(80px, 15vw)', borderRadius: '50%', border: '6px solid #f6d365',
@@ -500,7 +529,6 @@ export default function App() {
               <p className="text-xs sm:text-sm text-gray-500">Escolha um nível para começar</p>
             </div>
           </div>
-
           <div className="bg-gray-100 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs sm:text-sm font-semibold">Seu Progresso</span>
@@ -510,7 +538,6 @@ export default function App() {
               <div className="progress-fill" style={{width: `${totalProgress}%`}}></div>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
             {LEVELS.map((level, idx) => (
               <div key={idx} className={`level-card cursor-pointer ${idx > 0 && levelProgress[idx - 1].stars === 0 ? 'locked' : ''}`}
@@ -537,7 +564,6 @@ export default function App() {
               </div>
             ))}
           </div>
-
           <div className="bg-white rounded-2xl p-4 mb-4">
             <p className="text-sm font-bold mb-3 text-center text-gray-700">Modo de Jogo</p>
             <div className="flex gap-2">
@@ -550,11 +576,9 @@ export default function App() {
     )
   }
 
-  // === A CORREÇÃO PRINCIPAL ESTÁ AQUI ===
-  // Transformado em FUNÇÃO DE RENDERIZAÇÃO (não componente)
   const renderGameScreen = () => {
     const level = LEVELS[currentLevel]
-    const { rows, cols } = calculateGrid(level.pieces, imageAspectRatio)
+    const { rows, cols } = calculateGrid(level.pieces, 1) // Force 1:1 ratio
     const progress = pieces.filter(p => p.isPlaced).length
 
     return (
@@ -570,20 +594,17 @@ export default function App() {
               <span className="text-xl sm:text-2xl">{soundEnabled ? '🔊' : '🔇'}</span>
             </button>
           </div>
-
           <div className="progress-bar mb-4 sm:mb-6">
             <div className="progress-fill" style={{width: `${(progress/level.pieces)*100}%`}}></div>
           </div>
-
           {showHint && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-6" onClick={() => setShowHint(false)}>
-              <div className="max-w-2xl">
-                <img src={uploadedImages[currentLevel].src} alt="Dica" className="rounded-3xl shadow-2xl max-h-[80vh] object-contain" />
+              <div className="max-w-2xl w-full">
+                <img src={uploadedImages[currentLevel].src} alt="Dica" className="rounded-3xl shadow-2xl w-full aspect-square object-cover" />
                 <p className="text-white text-center mt-4 text-sm sm:text-lg font-bold">👆 Toque para fechar</p>
               </div>
             </div>
           )}
-
           {isShuffling ? (
             <div className="flex items-center justify-center h-96">
               <div className="text-purple-600 text-xl font-bold animate-pulse">Embaralhando peças...</div>
@@ -593,32 +614,35 @@ export default function App() {
               className="grid gap-1 sm:gap-2 bg-white/20 backdrop-blur p-2 sm:p-4 rounded-3xl mb-4 sm:mb-6 mx-auto"
               style={{
                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                gridTemplateRows: `repeat(${rows}, 1fr)`, // Adicionado para garantir o layout
-                aspectRatio: imageAspectRatio,
+                gridTemplateRows: `repeat(${rows}, 1fr)`,
+                aspectRatio: '1 / 1',
                 width: 'min(90vw, 600px)'
               }}
             >
               {pieces.map((piece) => (
                 <div
                   key={piece.id}
+                  data-piece-id={piece.id}
                   draggable={!piece.isPlaced && swapMode === 'drag'}
                   onDragStart={(e) => handleDragStart(e, piece)}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => handleDrop(e, piece)}
+                  onTouchStart={(e) => handleTouchStart(e, piece)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
                   onClick={() => handlePieceClick(piece)}
                   className={`puzzle-piece-3d relative rounded-lg overflow-hidden bg-white shadow-lg cursor-pointer ${
                     selectedPiece?.id === piece.id ? 'ring-4 ring-yellow-400 z-10 scale-95' : ''
                   } ${piece.isPlaced ? 'ring-4 ring-green-400' : ''}`}
                   style={{
-                    // CORREÇÃO VISUAL: Usa a imagem já cortada e estilo simples
                     backgroundImage: `url(${piece.image})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     backgroundRepeat: 'no-repeat',
                     opacity: piece.isPlaced ? 1 : (selectedPiece?.id === piece.id ? 0.7 : 1),
-                    // Mantém a peça no grid correto
                     gridRow: piece.currentRow + 1,
-                    gridColumn: piece.currentCol + 1
+                    gridColumn: piece.currentCol + 1,
+                    touchAction: 'none'
                   }}
                 >
                   {piece.isPlaced && (
@@ -630,7 +654,6 @@ export default function App() {
               ))}
             </div>
           )}
-
           <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
             <button onClick={() => { setShowHint(true); playBeep() }} className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-yellow-400 text-gray-800 rounded-full text-sm sm:text-base font-bold shadow-lg hover:scale-105 transition">💡 Dica</button>
             <button onClick={() => { if(!document.fullscreenElement) { document.documentElement.requestFullscreen() } else { document.exitFullscreen() }; playBeep() }} className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-blue-500 text-white rounded-full text-sm sm:text-base font-bold shadow-lg hover:scale-105 transition">⛶ Tela Cheia</button>
@@ -658,22 +681,18 @@ export default function App() {
         <div className="floating-card max-w-md w-full p-6 sm:p-8 text-center relative overflow-hidden">
           <h1 className="text-4xl sm:text-5xl font-black text-purple-600 mb-2">Parabéns!</h1>
           <p className="text-lg sm:text-xl font-bold text-gray-700 mb-6 sm:mb-8">Você conseguiu!</p>
-
           <div className="relative inline-block mb-6 sm:mb-8">
-            <div className="w-56 h-42 sm:w-64 sm:h-48 bg-white rounded-2xl shadow-2xl p-2 sm:p-3 transform rotate-1 hover:rotate-0 transition">
+            <div className="w-56 h-42 sm:w-64 sm:h-64 bg-white rounded-2xl shadow-2xl p-2 sm:p-3 transform rotate-1 hover:rotate-0 transition">
               <img src={uploadedImages[currentLevel]?.src} alt="Puzzle completo" className="w-full h-full object-cover rounded-xl" />
               <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg"><span className="text-white text-lg sm:text-2xl">✓</span></div>
             </div>
           </div>
-
           <div className="flex justify-center gap-4 mb-6 sm:mb-8">
             {[1,2,3].map(i => (<span key={i} className="text-4xl sm:text-5xl animate-bounce" style={{animationDelay: `${(i-1)*0.1}s`}}>⭐</span>))}
           </div>
-
           <button onClick={() => { playBeep(); if (currentLevel < LEVELS.length - 1) { setCurrentLevel(currentLevel + 1); setScreen('game') } else { setScreen('levels') } }} className="btn-primary w-full text-lg sm:text-xl mb-4">
             {currentLevel < LEVELS.length - 1 ? 'PRÓXIMA FASE' : 'VER MAPA'}
           </button>
-
           <div className="flex gap-6 sm:gap-8 justify-center">
             <button onClick={() => { playBeep(); setScreen('levels') }} className="flex flex-col items-center gap-1"><span className="text-2xl">🏠</span><span className="text-xs font-semibold">Menu</span></button>
             <button onClick={() => { playBeep(); setScreen('game') }} className="flex flex-col items-center gap-1"><span className="text-2xl">🔄</span><span className="text-xs font-semibold">Repetir</span></button>
@@ -689,7 +708,7 @@ export default function App() {
       {screen === 'register' && <RegisterScreen />}
       {screen === 'upload' && <UploadScreen />}
       {screen === 'levels' && <LevelsScreen />}
-      {screen === 'game' && renderGameScreen()} {/* Chamada como função, não componente */}
+      {screen === 'game' && renderGameScreen()}
       {screen === 'victory' && <VictoryScreen />}
     </>
   )
